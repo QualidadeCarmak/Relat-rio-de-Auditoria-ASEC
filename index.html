@@ -22,12 +22,14 @@ header .titles p{font-size:.85rem;opacity:.85;margin-top:.15rem}
 .meta{background:var(--c);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;box-shadow:0 1px 4px rgba(0,0,0,.06);display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
 .meta label{display:block;font-size:.8rem;color:var(--m);margin-bottom:.3rem}
 .meta input{width:100%;padding:.55rem .75rem;border:1px solid var(--b);border-radius:8px;font-size:.95rem}
-.area-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:1rem}
-.area-card{background:var(--c);border:2px solid var(--b);border-radius:14px;padding:1.75rem 1.25rem;text-align:center;cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(0,0,0,.04)}
-.area-card:hover{border-color:var(--p);transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,57,56,.12)}
-.area-card .icon{font-size:2.2rem;margin-bottom:.6rem}
-.area-card h3{font-size:1.1rem;color:var(--p);margin-bottom:.3rem}
-.area-card p{font-size:.8rem;color:var(--m)}
+.area-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.25rem;margin-top:1rem}
+.area-card{background:var(--c);border:2px solid var(--b);border-radius:18px;padding:2.25rem 1.5rem;text-align:center;cursor:pointer;transition:all .18s;box-shadow:0 2px 8px rgba(0,0,0,.05);min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;-webkit-tap-highlight-color:transparent}
+.area-card:hover,.area-card:active{border-color:var(--p);transform:translateY(-4px);box-shadow:0 10px 26px rgba(0,57,56,.16)}
+.area-card .icon{font-size:3.4rem;margin-bottom:.2rem}
+.area-card h3{font-size:1.35rem;color:var(--p);font-weight:800}
+.area-card p{font-size:.85rem;color:var(--m);max-width:220px}
+.area-card .cnt{font-size:.75rem;background:#e6f2f2;color:var(--p);padding:.25rem .7rem;border-radius:14px;font-weight:700;margin-top:.3rem}
+@media(max-width:640px){.area-grid{grid-template-columns:1fr}.area-card{min-height:120px;padding:1.5rem 1.25rem;flex-direction:row;justify-content:flex-start;text-align:left;gap:1rem}.area-card .icon{font-size:2.6rem;margin-bottom:0}.area-card .info{display:flex;flex-direction:column;align-items:flex-start;gap:.25rem}}
 .checklist-view{display:none}.checklist-view.on{display:block}
 .back-bar{display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
 .back-bar button{background:var(--p);color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;font-weight:600;cursor:pointer}
@@ -42,17 +44,25 @@ header .titles p{font-size:.85rem;opacity:.85;margin-top:.15rem}
 .bd{font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:4px;text-transform:uppercase}
 .bm{background:#f8d7da;color:#842029}.be{background:#cff4fc;color:#055160}
 .gd{font-size:.82rem;color:var(--m);background:#f5f8f8;padding:.6rem .8rem;border-radius:6px;margin-bottom:.8rem;white-space:pre-line}
-.ar{display:flex;flex-wrap:wrap;align-items:center;gap:1rem}
-.rg{display:flex;gap:.75rem}
+.ar{display:flex;flex-direction:column;gap:.9rem}
+.rg{display:flex;gap:.75rem;flex-wrap:wrap}
 .rg label{display:flex;align-items:center;gap:.35rem;cursor:pointer;font-weight:500;padding:.35rem .7rem;border-radius:6px;border:1px solid var(--b)}
 .rg input{accent-color:var(--p)}
 .rg label:has(input:checked){border-color:var(--p);background:#e6f2f2}
 .rg .ol:has(input:checked){border-color:var(--s);background:#d1e7dd}
 .rg .nl:has(input:checked){border-color:var(--d);background:#f8d7da}
-.eb{flex:1;min-width:180px}
-.eb input[type=file]{font-size:.85rem;width:100%}
-.pi{margin-top:.5rem;max-width:140px;max-height:90px;border-radius:6px;border:1px solid var(--b);display:none}
-.pi.show{display:block}
+.eb{width:100%}
+.add-photo-btn{display:inline-flex;align-items:center;gap:.4rem;background:var(--p);color:#fff;padding:.5rem 1rem;border-radius:8px;font-weight:600;font-size:.85rem;cursor:pointer;user-select:none}
+.add-photo-btn:hover{background:var(--pd)}
+.photo-count{margin-left:.6rem;font-size:.8rem;color:var(--m)}
+.gallery{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.75rem}
+.thumb{position:relative;width:100px;height:76px;border-radius:8px;overflow:hidden;border:1px solid var(--b);background:#e9eeee}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+.thumb .rm{position:absolute;top:2px;right:2px;background:rgba(220,53,69,.92);color:#fff;border:none;width:20px;height:20px;border-radius:50%;font-size:.9rem;line-height:1;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center;padding:2rem}
+.lightbox.show{display:flex}
+.lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+.lightbox-close{position:absolute;top:1.2rem;right:1.5rem;color:#fff;font-size:2rem;cursor:pointer;background:none;border:none}
 .act{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.5rem;position:sticky;bottom:1rem;z-index:50}
 .btn{padding:.7rem 1.3rem;border:none;border-radius:8px;font-weight:600;font-size:.95rem;cursor:pointer}
 .bp{background:var(--p);color:#fff}.bp:hover{background:var(--pd)}
@@ -114,6 +124,10 @@ header .titles p{font-size:.85rem;opacity:.85;margin-top:.15rem}
 <div class="hist-list" id="histList"></div>
 </div>
 <p class="fn">Carmak • Checklist Auditoria Interna ASEC • Itens Mandatórios e Evidenciáveis destacados</p>
+</div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+<button class="lightbox-close" onclick="closeLightbox()">×</button>
+<img id="lightboxImg" src="" alt="Evidência">
 </div>
 <script>
 
@@ -259,9 +273,13 @@ Alm:{n:"Almoxarifado",q:[
 {i:"Q15-4",t:"O departamento de serviços notifica os clientes e reprograma os compromissos quando o ETA (Tempo Estimado de Chegada) muda?",g:"Peças informa Serviços imediatamente. Procedimento documentado.",m:0,e:0}
 ]}
 };
-const ans={};
-
-;
+const DESC = {
+  RH: "Organograma, mapa de habilidades e programas motivacionais",
+  Seg: "Segurança do trabalho, EPIs, meio ambiente e prevenção de acidentes",
+  Pos: "Atendimento, ordens de serviço, contratos e satisfação do cliente",
+  Ofi: "Organização, limpeza, ferramentas e infraestrutura da oficina",
+  Alm: "Estoque, armazenagem, peças e logística do almoxarifado"
+};
 let currentArea = null;
 const ans = {};
 document.getElementById("auditDate").valueAsDate = new Date();
@@ -273,7 +291,7 @@ function initAreaCards() {
     const a = A[k];
     const card = document.createElement("div");
     card.className = "area-card";
-    card.innerHTML = `<div class="icon">${ICONS[k]||"📋"}</div><h3>${a.n}</h3><p>${a.q.length} itens</p>`;
+    card.innerHTML = `<div class="icon">${ICONS[k]||"📋"}</div><div class="info"><h3>${a.n}</h3><p>${DESC[k]||""}</p><span class="cnt">${a.q.length} itens</span></div>`;
     card.onclick = () => startArea(k);
     grid.appendChild(card);
   });
@@ -304,14 +322,15 @@ function renderQuestions(key) {
     let bd = "";
     if (q.m) bd += '<span class="bd bm">Mandatório</span>';
     if (q.e) bd += '<span class="bd be">Evidenciável</span>';
-    c.innerHTML = `<div class="qh"><span class="qcde">${q.i}</span><span class="qtx">${q.t}</span><div class="bdg">${bd}</div></div>${q.g ? `<div class="gd">${q.g}</div>` : ""}<div class="ar"><div class="rg"><label class="ol"><input type="radio" name="${key}_${q.i}" value="ok" ${a.s==="ok"?"checked":""} onchange="setA('${key}','${q.i}','ok')"> Conforme</label><label class="nl"><input type="radio" name="${key}_${q.i}" value="nok" ${a.s==="nok"?"checked":""} onchange="setA('${key}','${q.i}','nok')"> Não Conforme</label></div><div class="eb"><input type="file" accept="image/*" id="f-${key}-${q.i}" onchange="hF('${key}','${q.i}',this)"><img class="pi${a.e?" show":""}" id="pi-${key}-${q.i}" ${a.e?`src="${a.e}"`:""}></div></div>`;
+    c.innerHTML = `<div class="qh"><span class="qcde">${q.i}</span><span class="qtx">${q.t}</span><div class="bdg">${bd}</div></div>${q.g ? `<div class="gd">${q.g}</div>` : ""}<div class="ar"><div class="rg"><label class="ol"><input type="radio" name="${key}_${q.i}" value="ok" ${a.s==="ok"?"checked":""} onchange="setA('${key}','${q.i}','ok')"> Conforme</label><label class="nl"><input type="radio" name="${key}_${q.i}" value="nok" ${a.s==="nok"?"checked":""} onchange="setA('${key}','${q.i}','nok')"> Não Conforme</label></div><div class="eb"><label class="add-photo-btn" for="f-${key}-${q.i}">📷 Adicionar Fotos</label><input type="file" accept="image/*" multiple capture="environment" id="f-${key}-${q.i}" onchange="hF('${key}','${q.i}',this)" style="display:none"><span class="photo-count" id="cnt-${key}-${q.i}"></span><div class="gallery" id="gal-${key}-${q.i}"></div></div></div>`;
     cont.appendChild(c);
+    renderGallery(key, q.i);
   });
 }
 
 function setA(k, i, s) {
   const key = k + "_" + i;
-  if (!ans[key]) ans[key] = { s: null, e: null, n: null };
+  if (!ans[key]) ans[key] = { s: null, imgs: [] };
   ans[key].s = s;
   const c = document.getElementById("c-" + k + "-" + i);
   c.classList.remove("ok", "nok");
@@ -320,24 +339,71 @@ function setA(k, i, s) {
   updateAreaScore();
 }
 
-function hF(k, i, inp) {
+function compressImage(file, maxW, quality) {
+  maxW = maxW || 1280; quality = quality || 0.72;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function hF(k, i, inp) {
   const key = k + "_" + i;
-  if (!ans[key]) ans[key] = { s: null, e: null, n: null };
-  const f = inp.files[0];
-  if (!f) {
-    ans[key].e = null; ans[key].n = null;
-    document.getElementById("pi-" + k + "-" + i).classList.remove("show");
-    return;
+  if (!ans[key]) ans[key] = { s: null, imgs: [] };
+  if (!ans[key].imgs) ans[key].imgs = [];
+  const files = Array.from(inp.files || []);
+  for (const f of files) {
+    try {
+      const data = await compressImage(f);
+      ans[key].imgs.push({ data: data, name: f.name });
+    } catch (e) { console.error("Falha ao processar imagem", e); }
   }
-  const r = new FileReader();
-  r.onload = e => {
-    ans[key].e = e.target.result;
-    ans[key].n = f.name;
-    const img = document.getElementById("pi-" + k + "-" + i);
-    img.src = e.target.result;
-    img.classList.add("show");
-  };
-  r.readAsDataURL(f);
+  inp.value = "";
+  renderGallery(k, i);
+}
+
+function renderGallery(k, i) {
+  const key = k + "_" + i;
+  const imgs = (ans[key] && ans[key].imgs) || [];
+  const g = document.getElementById("gal-" + k + "-" + i);
+  if (!g) return;
+  g.innerHTML = imgs.map((im, idx) => `<div class="thumb"><img src="${im.data}" alt="Evidência" onclick="openLightbox('${k}','${i}',${idx})"><button type="button" class="rm" onclick="event.stopPropagation();removeImg('${k}','${i}',${idx})" title="Remover">×</button></div>`).join("");
+  const cnt = document.getElementById("cnt-" + k + "-" + i);
+  if (cnt) cnt.textContent = imgs.length ? imgs.length + " foto" + (imgs.length > 1 ? "s" : "") + " anexada" + (imgs.length > 1 ? "s" : "") : "Nenhuma foto anexada";
+}
+
+function removeImg(k, i, idx) {
+  const key = k + "_" + i;
+  if (!ans[key] || !ans[key].imgs) return;
+  ans[key].imgs.splice(idx, 1);
+  renderGallery(k, i);
+}
+
+function openLightbox(k, i, idx) {
+  const key = k + "_" + i;
+  const imgs = (ans[key] && ans[key].imgs) || [];
+  if (!imgs[idx]) return;
+  document.getElementById("lightboxImg").src = imgs[idx].data;
+  document.getElementById("lightbox").classList.add("show");
+}
+
+function closeLightbox() {
+  document.getElementById("lightbox").classList.remove("show");
 }
 
 function calc(k) {
@@ -371,7 +437,13 @@ function getHistory() {
   catch { return []; }
 }
 function saveHistory(list) {
-  localStorage.setItem("asec_history", JSON.stringify(list));
+  try {
+    localStorage.setItem("asec_history", JSON.stringify(list));
+    return true;
+  } catch (e) {
+    alert("Não foi possível salvar no histórico: o armazenamento local está cheio (muitas fotos em alta resolução). Gere o PDF para não perder as evidências e, se necessário, exclua relatórios antigos do histórico ou remova algumas fotos antes de salvar novamente.");
+    return false;
+  }
 }
 
 function saveToHistory() {
@@ -400,8 +472,7 @@ function saveToHistory() {
   const list = getHistory();
   list.unshift(entry);
   if (list.length > 50) list.pop();
-  saveHistory(list);
-  alert("Relatório salvo no histórico com sucesso!");
+  if (saveHistory(list)) alert("Relatório salvo no histórico com sucesso!");
 }
 
 function renderHistory() {
@@ -494,7 +565,8 @@ async function generatePDF() {
     const fl = [];
     if (q.m) fl.push("M");
     if (q.e) fl.push("E");
-    body.push([q.i + (fl.length ? " [" + fl.join("+") + "]" : ""), q.t.substring(0, 85) + (q.t.length > 85 ? "…" : ""), st, a.n ? "Sim" : "—"]);
+    const nImgs = (a.imgs && a.imgs.length) || 0;
+    body.push([q.i + (fl.length ? " [" + fl.join("+") + "]" : ""), q.t.substring(0, 85) + (q.t.length > 85 ? "…" : ""), st, nImgs ? nImgs + " foto" + (nImgs > 1 ? "s" : "") : "—"]);
   });
 
   doc.autoTable({
@@ -522,7 +594,7 @@ async function generatePDF() {
   const evs = [];
   A[currentArea].q.forEach(q => {
     const a = ans[currentArea + "_" + q.i];
-    if (a && a.e) evs.push({ i: q.i, t: q.t, s: a.s, img: a.e, n: a.n });
+    if (a && a.imgs && a.imgs.length) evs.push({ i: q.i, t: q.t, s: a.s, imgs: a.imgs });
   });
   if (evs.length) {
     doc.addPage();
@@ -531,28 +603,38 @@ async function generatePDF() {
     doc.setTextColor(255, 255, 255); doc.setFontSize(13); doc.setFont("helvetica", "bold");
     doc.text("Evidências Fotográficas", m, 11);
     doc.setTextColor(33, 37, 41); y = 26;
+    const imgW = 55, imgH = 40, gap = 6, pageBottom = 280;
     for (const it of evs) {
-      if (y > 240) { doc.addPage(); y = 18; }
+      if (y > 245) { doc.addPage(); y = 18; }
       doc.setFontSize(9); doc.setFont("helvetica", "bold");
       doc.text(it.i, m, y); y += 5;
       doc.setFont("helvetica", "normal"); doc.setFontSize(8);
       const ls = doc.splitTextToSize(it.t, pw - m * 2);
       doc.text(ls, m, y); y += ls.length * 4 + 2;
       doc.setTextColor(it.s === "ok" ? 25 : 220, it.s === "ok" ? 135 : 53, it.s === "ok" ? 84 : 69);
-      doc.text("Status: " + (it.s === "ok" ? "Conforme" : "Não Conforme"), m, y);
-      doc.setTextColor(33, 37, 41); y += 5;
-      try {
-        const ip = doc.getImageProperties(it.img);
-        let w = ip.width, h = ip.height;
-        const r = Math.min(80 / w, 50 / h);
-        w *= r; h *= r;
-        doc.addImage(it.img, "JPEG", m, y, w, h);
-        y += h + 10;
-      } catch (e) {
-        doc.setFontSize(8); doc.setTextColor(108, 117, 125);
-        doc.text("[Imagem: " + it.n + "]", m, y); y += 8;
-        doc.setTextColor(33, 37, 41);
+      doc.text("Status: " + (it.s === "ok" ? "Conforme" : it.s === "nok" ? "Não Conforme" : "Não respondido") + " • " + it.imgs.length + " foto(s)", m, y);
+      doc.setTextColor(33, 37, 41); y += 6;
+
+      let xOff = m, rowMaxH = 0;
+      for (let idx = 0; idx < it.imgs.length; idx++) {
+        const im = it.imgs[idx];
+        if (xOff + imgW > pw - m) { xOff = m; y += rowMaxH + gap; rowMaxH = 0; }
+        if (y + imgH > pageBottom) { doc.addPage(); y = 18; xOff = m; rowMaxH = 0; }
+        try {
+          const ip = doc.getImageProperties(im.data);
+          const r = Math.min(imgW / ip.width, imgH / ip.height);
+          const w = ip.width * r, h = ip.height * r;
+          doc.addImage(im.data, "JPEG", xOff, y, w, h);
+          rowMaxH = Math.max(rowMaxH, h);
+        } catch (e) {
+          doc.setFontSize(7); doc.setTextColor(108, 117, 125);
+          doc.text("[Imagem inválida]", xOff, y + 10);
+          doc.setTextColor(33, 37, 41);
+          rowMaxH = Math.max(rowMaxH, 12);
+        }
+        xOff += imgW + gap;
       }
+      y += rowMaxH + 10;
     }
   }
 
