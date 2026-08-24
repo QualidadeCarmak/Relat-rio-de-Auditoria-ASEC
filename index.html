@@ -7,10 +7,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
-:root{--p:#0b1f3f;--pd:#060f22;--pl:#16305c;--gold:#c8a24d;--gold-d:#a3812f;--gold-lt:#f3e4bb;--s:#1f7a5c;--d:#a4344a;--bg:#f2f4f8;--c:#fff;--b:#dde1ea;--t:#152238;--m:#606c85}
+:root{
+  --p:#39653b;
+  --pd:#2a4a2c;
+  --pl:#4a7f4e;
+  --gold:#c8a24d;
+  --gold-d:#a3812f;
+  --gold-lt:#f3e4bb;
+  --s:#1f7a5c;
+  --d:#a4344a;
+  --bg:#f2f4f8;
+  --c:#fff;
+  --b:#dde1ea;
+  --t:#152238;
+  --m:#606c85;
+}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t);line-height:1.5;min-height:100vh}
-header{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;padding:1rem 1.5rem;box-shadow:0 2px 16px rgba(6,15,34,.35);position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;border-bottom:3px solid var(--gold)}
+header{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;padding:1rem 1.5rem;box-shadow:0 2px 16px rgba(42,74,44,.35);position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;border-bottom:3px solid var(--gold)}
 header img.logo{height:38px;width:auto}
 header .titles h1{font-size:1.25rem;font-weight:700;letter-spacing:.2px}
 header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-spacing:.3px}
@@ -25,8 +39,8 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 .meta input,.meta select{width:100%;padding:.55rem .75rem;border:1px solid var(--b);border-radius:8px;font-size:.95rem;background:#fff;font-family:inherit}
 .meta select{cursor:pointer}
 .area-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.25rem;margin-top:1rem}
-.area-card{background:linear-gradient(145deg,var(--p),var(--pd));border:2px solid rgba(200,162,77,.45);border-radius:18px;padding:2.25rem 1.5rem;text-align:center;cursor:pointer;transition:all .18s;box-shadow:0 4px 14px rgba(11,31,63,.25);min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;color:#fff}
-.area-card:hover,.area-card:active{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 12px 28px rgba(11,31,63,.35)}
+.area-card{background:linear-gradient(145deg,var(--p),var(--pd));border:2px solid rgba(200,162,77,.45);border-radius:18px;padding:2.25rem 1.5rem;text-align:center;cursor:pointer;transition:all .18s;box-shadow:0 4px 14px rgba(42,74,44,.25);min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;color:#fff}
+.area-card:hover,.area-card:active{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 12px 28px rgba(42,74,44,.35)}
 .area-card .icon{font-size:3.4rem;margin-bottom:.2rem}
 .area-card h3{font-size:1.35rem;color:#fff;font-weight:800}
 .area-card p{font-size:.85rem;color:rgba(243,228,187,.85);max-width:220px}
@@ -45,13 +59,13 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 .qtx{flex:1;font-size:.95rem}
 .bdg{display:flex;gap:.35rem;flex-wrap:wrap}
 .bd{font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:4px;text-transform:uppercase}
-.bm{background:var(--gold-lt);color:var(--gold-d)}.be{background:#dbe6f5;color:var(--p)}
+.bm{background:var(--gold-lt);color:var(--gold-d)}.be{background:#e3f0e4;color:var(--p)}
 .gd{font-size:.82rem;color:var(--m);background:#f5f8f8;padding:.6rem .8rem;border-radius:6px;margin-bottom:.8rem;white-space:pre-line}
 .ar{display:flex;flex-direction:column;gap:.9rem}
 .rg{display:flex;gap:.75rem;flex-wrap:wrap}
 .rg label{display:flex;align-items:center;gap:.35rem;cursor:pointer;font-weight:500;padding:.35rem .7rem;border-radius:6px;border:1px solid var(--b)}
 .rg input{accent-color:var(--p)}
-.rg label:has(input:checked){border-color:var(--p);background:#e6f2f2}
+.rg label:has(input:checked){border-color:var(--p);background:#e8f3e9}
 .rg .ol:has(input:checked){border-color:var(--s);background:#d1e7dd}
 .rg .nl:has(input:checked){border-color:var(--d);background:#f8d7da}
 .just-box{display:none;margin-top:.5rem}
@@ -606,7 +620,7 @@ function resetCurrent() {
   updateAreaScore();
 }
 
-/* ===================== PDF PROFISSIONAL ===================== */
+/* ===================== PDF COM NOVA PALETA VERDE ===================== */
 async function getLogoDataURL() {
   return new Promise((resolve) => {
     const img = document.querySelector("header img.logo");
@@ -616,7 +630,7 @@ async function getLogoDataURL() {
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
         canvas.getContext("2d").drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/png"));
+        resolve({ data: canvas.toDataURL("image/png"), w: img.naturalWidth, h: img.naturalHeight });
         return;
       } catch(e){}
     }
@@ -627,7 +641,7 @@ async function getLogoDataURL() {
         canvas.width = temp.naturalWidth;
         canvas.height = temp.naturalHeight;
         canvas.getContext("2d").drawImage(temp, 0, 0);
-        resolve(canvas.toDataURL("image/png"));
+        resolve({ data: canvas.toDataURL("image/png"), w: temp.naturalWidth, h: temp.naturalHeight });
       } catch(e){ resolve(null); }
     };
     temp.onerror = () => resolve(null);
@@ -665,18 +679,37 @@ async function generatePDF() {
   const m = 14;
   let y = 0;
 
+  // Verde principal: #39653b → RGB(57, 101, 59)
+  // Verde escuro: #2a4a2c → RGB(42, 74, 44)
+  // Dourado: #c8a24d → RGB(200, 162, 77)
+
   // ===== CABEÇALHO =====
-  doc.setFillColor(11, 31, 63);
+  doc.setFillColor(57, 101, 59);
   doc.rect(0, 0, pw, 26, "F");
   doc.setFillColor(200, 162, 77);
   doc.rect(0, 26, pw, 1.6, "F");
 
-  const logoData = await getLogoDataURL();
-  if (logoData) {
-    try { doc.addImage(logoData, "PNG", m, 7, 30, 10.5); } catch(e){}
+  const logoInfo = await getLogoDataURL();
+  let textX = m;
+
+  if (logoInfo && logoInfo.data) {
+    try {
+      // Proporção correta do logo (evita esticar)
+      const maxLogoW = 34;
+      const maxLogoH = 12;
+      const ratio = logoInfo.w / logoInfo.h;
+      let logoW = maxLogoW;
+      let logoH = logoW / ratio;
+      if (logoH > maxLogoH) {
+        logoH = maxLogoH;
+        logoW = logoH * ratio;
+      }
+      const logoY = (26 - logoH) / 2;
+      doc.addImage(logoInfo.data, "PNG", m, logoY, logoW, logoH);
+      textX = m + logoW + 6;
+    } catch(e){}
   }
 
-  const textX = logoData ? m + 36 : m;
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
@@ -703,12 +736,11 @@ async function generatePDF() {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
-  doc.setTextColor(11, 31, 63);
+  doc.setTextColor(57, 101, 59);
   doc.text(dealer, m + 4, y + 11.5);
   doc.text(date, m + 78, y + 11.5);
   doc.text(auditor, m + 115, y + 11.5);
 
-  // Assertividade
   doc.setFontSize(7);
   doc.setTextColor(100, 110, 125);
   doc.setFont("helvetica", "normal");
@@ -733,7 +765,7 @@ async function generatePDF() {
     y += 6;
   }
 
-  // ===== TABELA PRINCIPAL =====
+  // ===== TABELA =====
   const body = [];
   A[currentArea].q.forEach(q => {
     const a = ans[currentArea + "_" + q.i] || {};
@@ -747,9 +779,7 @@ async function generatePDF() {
 
     const nImgs = (a.imgs && a.imgs.length) || 0;
     let itemText = q.t;
-    if (a.s === "nok" && a.just) {
-      itemText += "\n\nMotivo: " + a.just;
-    }
+    if (a.s === "nok" && a.just) itemText += "\n\nMotivo: " + a.just;
 
     body.push([
       q.i,
@@ -766,7 +796,7 @@ async function generatePDF() {
     body,
     theme: "plain",
     headStyles: {
-      fillColor: [11, 31, 63],
+      fillColor: [57, 101, 59],
       textColor: [243, 228, 187],
       fontSize: 7.5,
       fontStyle: "bold",
@@ -781,7 +811,7 @@ async function generatePDF() {
       textColor: [30, 40, 55]
     },
     columnStyles: {
-      0: { cellWidth: 15, fontStyle: "bold", textColor: [11, 31, 63] },
+      0: { cellWidth: 15, fontStyle: "bold", textColor: [57, 101, 59] },
       1: { cellWidth: 98 },
       2: { cellWidth: 28, fontSize: 6.2, textColor: [140, 110, 40] },
       3: { cellWidth: 24, fontStyle: "bold", halign: "center" },
@@ -790,9 +820,7 @@ async function generatePDF() {
     margin: { left: m, right: m },
     didParseCell(data) {
       if (data.section === "body") {
-        if (data.row.index % 2 === 0) {
-          data.cell.styles.fillColor = [250, 251, 253];
-        }
+        if (data.row.index % 2 === 0) data.cell.styles.fillColor = [250, 251, 253];
         if (data.column.index === 3) {
           if (data.cell.raw === "Conforme") {
             data.cell.styles.textColor = [25, 120, 75];
@@ -810,11 +838,8 @@ async function generatePDF() {
 
   y = doc.lastAutoTable.finalY + 12;
 
-  // ===== BLOCO DE ASSINATURA =====
-  if (y > 230) {
-    doc.addPage();
-    y = 20;
-  }
+  // ===== ASSINATURA =====
+  if (y > 230) { doc.addPage(); y = 20; }
 
   doc.setDrawColor(200, 162, 77);
   doc.setLineWidth(0.5);
@@ -823,11 +848,10 @@ async function generatePDF() {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.setTextColor(11, 31, 63);
+  doc.setTextColor(57, 101, 59);
   doc.text("Validação do Auditor", m, y);
   y += 10;
 
-  // Caixa de assinatura
   doc.setDrawColor(200, 205, 215);
   doc.setLineWidth(0.3);
   doc.setFillColor(252, 252, 254);
@@ -839,7 +863,7 @@ async function generatePDF() {
   doc.text("Auditor responsável", m + 4, y + 6);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
-  doc.setTextColor(11, 31, 63);
+  doc.setTextColor(57, 101, 59);
   doc.text(auditor, m + 4, y + 12);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
@@ -847,7 +871,6 @@ async function generatePDF() {
   doc.text("Analista de Qualidade", m + 4, y + 17.5);
   doc.text("Data: " + date, m + 4, y + 23);
 
-  // Linha de assinatura
   doc.setDrawColor(150, 155, 165);
   doc.setLineWidth(0.4);
   doc.line(m + 100, y + 20, m + 170, y + 20);
@@ -855,7 +878,7 @@ async function generatePDF() {
   doc.setTextColor(140, 145, 155);
   doc.text("Assinatura", m + 128, y + 25);
 
-  // ===== PÁGINAS DE EVIDÊNCIAS =====
+  // ===== EVIDÊNCIAS =====
   const evs = [];
   A[currentArea].q.forEach(q => {
     const a = ans[currentArea + "_" + q.i];
@@ -866,9 +889,7 @@ async function generatePDF() {
 
   if (evs.length) {
     doc.addPage();
-
-    // Header da página de evidências
-    doc.setFillColor(11, 31, 63);
+    doc.setFillColor(57, 101, 59);
     doc.rect(0, 0, pw, 16, "F");
     doc.setFillColor(200, 162, 77);
     doc.rect(0, 16, pw, 1.4, "F");
@@ -883,7 +904,7 @@ async function generatePDF() {
     for (const it of evs) {
       if (y > 245) {
         doc.addPage();
-        doc.setFillColor(11, 31, 63);
+        doc.setFillColor(57, 101, 59);
         doc.rect(0, 0, pw, 12, "F");
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(9);
@@ -891,10 +912,9 @@ async function generatePDF() {
         y = 20;
       }
 
-      // Código + Status
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      doc.setTextColor(11, 31, 63);
+      doc.setTextColor(57, 101, 59);
       doc.text(it.i, m, y);
 
       const stTxt = it.s === "ok" ? "Conforme" : it.s === "nok" ? "Não Conforme" : "—";
@@ -947,7 +967,7 @@ async function generatePDF() {
     }
   }
 
-  // Adiciona rodapé em todas as páginas
+  // Rodapé em todas as páginas
   const totalPages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
