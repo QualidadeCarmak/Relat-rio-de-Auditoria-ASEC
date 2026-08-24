@@ -7,16 +7,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
-:root{--p:#003938;--pd:#002726;--s:#198754;--d:#dc3545;--bg:#f0f4f4;--c:#fff;--b:#d0d8d8;--t:#1a2a2a;--m:#5a6a6a}
+:root{--p:#0b1f3f;--pd:#060f22;--pl:#16305c;--gold:#c8a24d;--gold-d:#a3812f;--gold-lt:#f3e4bb;--s:#1f7a5c;--d:#a4344a;--bg:#f2f4f8;--c:#fff;--b:#dde1ea;--t:#152238;--m:#606c85}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t);line-height:1.5;min-height:100vh}
-header{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;padding:1rem 1.5rem;box-shadow:0 2px 12px rgba(0,57,56,.25);position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap}
-header img.logo{height:42px;width:auto}
-header .titles h1{font-size:1.25rem;font-weight:700}
-header .titles p{font-size:.85rem;opacity:.85;margin-top:.15rem}
-.nav{display:flex;gap:.5rem;margin-left:auto}
-.nav button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:.45rem 1rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:.9rem}
-.nav button:hover,.nav button.on{background:#fff;color:var(--p)}
+header{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;padding:1rem 1.5rem;box-shadow:0 2px 16px rgba(6,15,34,.35);position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;border-bottom:3px solid var(--gold)}
+header img.logo{height:38px;width:auto}
+header .titles h1{font-size:1.25rem;font-weight:700;letter-spacing:.2px}
+header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-spacing:.3px}
+.nav{display:flex;gap:.5rem;margin-left:auto;align-items:center;flex-wrap:wrap}
+.nav button{background:rgba(255,255,255,.08);border:1px solid rgba(200,162,77,.4);color:#fff;padding:.45rem 1rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:.9rem;position:relative}
+.nav button:hover{background:rgba(255,255,255,.16)}
+.nav button.on{background:var(--gold);color:var(--pd);border-color:var(--gold)}
+.nav .badge-count{position:absolute;top:-7px;right:-7px;background:var(--d);color:#fff;font-size:.65rem;font-weight:800;border-radius:10px;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--pd)}
+.lockbtn{background:rgba(255,255,255,.08);border:1px solid rgba(200,162,77,.4);color:var(--gold-lt);padding:.45rem .8rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:.85rem}
+.lockbtn.unlocked{background:var(--gold);color:var(--pd);border-color:var(--gold)}
 .container{max-width:1100px;margin:0 auto;padding:1.5rem}
 .area-select{display:none}.area-select.on{display:block}
 .meta{background:var(--c);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;box-shadow:0 1px 4px rgba(0,0,0,.06);display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
@@ -24,17 +28,17 @@ header .titles p{font-size:.85rem;opacity:.85;margin-top:.15rem}
 .meta input{width:100%;padding:.55rem .75rem;border:1px solid var(--b);border-radius:8px;font-size:.95rem}
 .area-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.25rem;margin-top:1rem}
 .area-card{background:var(--c);border:2px solid var(--b);border-radius:18px;padding:2.25rem 1.5rem;text-align:center;cursor:pointer;transition:all .18s;box-shadow:0 2px 8px rgba(0,0,0,.05);min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;-webkit-tap-highlight-color:transparent}
-.area-card:hover,.area-card:active{border-color:var(--p);transform:translateY(-4px);box-shadow:0 10px 26px rgba(0,57,56,.16)}
+.area-card:hover,.area-card:active{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 10px 26px rgba(11,31,63,.16)}
 .area-card .icon{font-size:3.4rem;margin-bottom:.2rem}
 .area-card h3{font-size:1.35rem;color:var(--p);font-weight:800}
 .area-card p{font-size:.85rem;color:var(--m);max-width:220px}
-.area-card .cnt{font-size:.75rem;background:#e6f2f2;color:var(--p);padding:.25rem .7rem;border-radius:14px;font-weight:700;margin-top:.3rem}
+.area-card .cnt{font-size:.75rem;background:var(--gold-lt);color:var(--gold-d);padding:.25rem .7rem;border-radius:14px;font-weight:700;margin-top:.3rem}
 @media(max-width:640px){.area-grid{grid-template-columns:1fr}.area-card{min-height:120px;padding:1.5rem 1.25rem;flex-direction:row;justify-content:flex-start;text-align:left;gap:1rem}.area-card .icon{font-size:2.6rem;margin-bottom:0}.area-card .info{display:flex;flex-direction:column;align-items:flex-start;gap:.25rem}}
 .checklist-view{display:none}.checklist-view.on{display:block}
 .back-bar{display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
 .back-bar button{background:var(--p);color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;font-weight:600;cursor:pointer}
 .back-bar h2{font-size:1.2rem;color:var(--p);flex:1}
-.score-pill{background:var(--p);color:#fff;padding:.4rem .9rem;border-radius:20px;font-weight:700;font-size:.95rem}
+.score-pill{background:var(--p);color:var(--gold-lt);border:1px solid var(--gold);padding:.4rem .9rem;border-radius:20px;font-weight:700;font-size:.95rem}
 .qc{background:var(--c);border-radius:12px;padding:1.1rem 1.25rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.05);border-left:4px solid #adb5bd}
 .qc.ok{border-left-color:var(--s)}.qc.nok{border-left-color:var(--d)}
 .qh{display:flex;flex-wrap:wrap;align-items:flex-start;gap:.5rem;margin-bottom:.6rem}
@@ -42,7 +46,7 @@ header .titles p{font-size:.85rem;opacity:.85;margin-top:.15rem}
 .qtx{flex:1;font-size:.95rem}
 .bdg{display:flex;gap:.35rem;flex-wrap:wrap}
 .bd{font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:4px;text-transform:uppercase}
-.bm{background:#f8d7da;color:#842029}.be{background:#cff4fc;color:#055160}
+.bm{background:var(--gold-lt);color:var(--gold-d)}.be{background:#dbe6f5;color:var(--p)}
 .gd{font-size:.82rem;color:var(--m);background:#f5f8f8;padding:.6rem .8rem;border-radius:6px;margin-bottom:.8rem;white-space:pre-line}
 .ar{display:flex;flex-direction:column;gap:.9rem}
 .rg{display:flex;gap:.75rem;flex-wrap:wrap}
@@ -65,8 +69,10 @@ header .titles p{font-size:.85rem;opacity:.85;margin-top:.15rem}
 .lightbox-close{position:absolute;top:1.2rem;right:1.5rem;color:#fff;font-size:2rem;cursor:pointer;background:none;border:none}
 .act{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.5rem;position:sticky;bottom:1rem;z-index:50}
 .btn{padding:.7rem 1.3rem;border:none;border-radius:8px;font-weight:600;font-size:.95rem;cursor:pointer}
-.bp{background:var(--p);color:#fff}.bp:hover{background:var(--pd)}
-.bs{background:#6c757d;color:#fff}.bg{background:var(--s);color:#fff}
+.bp{background:var(--p);color:#fff}.bp:hover{background:var(--pl)}
+.bs{background:#6c757d;color:#fff}
+.bg{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:var(--pd);font-weight:800}
+.bd-btn{background:var(--d);color:#fff}
 .history-view{display:none}.history-view.on{display:block}
 .hist-list{display:flex;flex-direction:column;gap:.75rem}
 .hist-card{background:var(--c);border-radius:12px;padding:1.1rem 1.25rem;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;flex-wrap:wrap;align-items:center;gap:1rem;border-left:4px solid var(--p)}
@@ -76,22 +82,58 @@ header .titles p{font-size:.85rem;opacity:.85;margin-top:.15rem}
 .hist-card .score{font-size:1.4rem;font-weight:700;color:var(--p);min-width:70px;text-align:center}
 .hist-card .actions{display:flex;gap:.5rem}
 .hist-card .actions button{padding:.4rem .8rem;border-radius:6px;border:none;font-weight:600;cursor:pointer;font-size:.85rem}
-.btn-view{background:var(--p);color:#fff}.btn-del{background:#f8d7da;color:#842029}
+.btn-view{background:var(--p);color:#fff}.btn-del{background:#fbe4e8;color:var(--d)}
 .empty{text-align:center;padding:3rem;color:var(--m)}
 .fn{text-align:center;font-size:.8rem;color:var(--m);margin-top:2rem;padding-bottom:2rem}
+
+.nc-view{display:none}.nc-view.on{display:block}
+.nc-toolbar{background:var(--c);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;flex-wrap:wrap;align-items:center;gap:.9rem}
+.nc-toolbar select{padding:.5rem .7rem;border:1px solid var(--b);border-radius:8px;font-size:.88rem;background:#fff}
+.nc-toolbar .mode-tag{margin-left:auto;font-size:.8rem;font-weight:700;padding:.35rem .8rem;border-radius:20px}
+.mode-view{background:#e9edf5;color:var(--m)}.mode-edit{background:var(--gold-lt);color:var(--gold-d)}
+.nc-list{display:flex;flex-direction:column;gap:1rem}
+.nc-card{background:var(--c);border-radius:14px;padding:1.25rem 1.4rem;box-shadow:0 1px 5px rgba(0,0,0,.07);border-left:5px solid var(--m)}
+.nc-card.st-aberto{border-left-color:var(--d)}
+.nc-card.st-andamento{border-left-color:var(--gold-d)}
+.nc-card.st-concluido{border-left-color:var(--s)}
+.nc-card.st-verificado{border-left-color:var(--p)}
+.nc-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:.6rem;margin-bottom:.5rem}
+.nc-head h4{color:var(--p);font-size:1.02rem}
+.nc-sub{font-size:.8rem;color:var(--m);margin-bottom:.6rem}
+.nc-q{font-size:.92rem;margin-bottom:.7rem}
+.nc-status-badge{font-size:.72rem;font-weight:800;padding:.3rem .75rem;border-radius:14px;text-transform:uppercase;white-space:nowrap}
+.sb-aberto{background:#f8dde2;color:var(--d)}
+.sb-andamento{background:var(--gold-lt);color:var(--gold-d)}
+.sb-concluido{background:#d7ede4;color:var(--s)}
+.sb-verificado{background:#dbe6f5;color:var(--p)}
+.nc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8rem;margin-bottom:.8rem}
+.nc-grid label{display:block;font-size:.75rem;color:var(--m);margin-bottom:.25rem;font-weight:600}
+.nc-grid input,.nc-grid select,.nc-grid textarea{width:100%;padding:.5rem .65rem;border:1px solid var(--b);border-radius:7px;font-size:.88rem;font-family:inherit}
+.nc-grid textarea{grid-column:1/-1;min-height:60px;resize:vertical}
+.nc-updates{margin-top:.8rem;border-top:1px solid var(--b);padding-top:.8rem}
+.nc-updates h5{font-size:.82rem;color:var(--p);margin-bottom:.55rem}
+.nc-upd{background:#f6f8fb;border-left:3px solid var(--gold);border-radius:6px;padding:.55rem .75rem;margin-bottom:.5rem;font-size:.85rem}
+.nc-upd .u-meta{font-size:.72rem;color:var(--m);margin-bottom:.2rem;font-weight:600}
+.nc-add-upd{display:flex;flex-direction:column;gap:.5rem;margin-top:.6rem}
+.nc-add-upd textarea{padding:.55rem .7rem;border:1px solid var(--b);border-radius:7px;font-size:.85rem;min-height:55px;font-family:inherit}
+.nc-add-upd .row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+.readonly-note{font-size:.78rem;color:var(--m);font-style:italic;margin-top:.4rem}
+.locked-icon{opacity:.55}
 @media(max-width:600px){header{flex-wrap:wrap}.nav{margin-left:0;width:100%}.ar{flex-direction:column;align-items:stretch}}
 </style>
 </head>
 <body>
 <header>
-<img class="logo" src="Logotipo Carmak (Branco).png" alt="Carmak" onerror="this.style.display='none'">
+<img class="logo" src="Logotipo_Carmak__Branco_.png" alt="Carmak" onerror="this.style.display='none'">
 <div class="titles">
 <h1>Checklist Auditoria Interna ASEC</h1>
 <p>Carmak • Toyota Material Handling</p>
 </div>
 <div class="nav">
 <button id="btnNova" class="on" onclick="showView('select')">Nova Auditoria</button>
+<button id="btnNC" onclick="showView('ncs')">Plano de Ação<span class="badge-count" id="ncBadge" style="display:none">0</span></button>
 <button id="btnHist" onclick="showView('history')">Histórico</button>
+<button class="lockbtn" id="lockBtn" onclick="toggleEditMode()">🔒 Modo Visualização</button>
 </div>
 </header>
 <div class="container">
@@ -122,6 +164,31 @@ header .titles p{font-size:.85rem;opacity:.85;margin-top:.15rem}
 <div id="view-history" class="history-view">
 <h2 style="color:var(--p);margin-bottom:1rem">Histórico de Relatórios</h2>
 <div class="hist-list" id="histList"></div>
+</div>
+<div id="view-ncs" class="nc-view">
+<h2 style="color:var(--p);margin-bottom:.3rem">Plano de Ação — Não Conformidades</h2>
+<p style="color:var(--m);margin-bottom:1rem;font-size:.9rem">Todo item marcado como "Não Conforme" no checklist entra automaticamente aqui. A área auditada pode acompanhar o andamento; apenas o auditor, em Modo Auditor, pode editar.</p>
+<div class="nc-toolbar">
+<div><label style="display:block;font-size:.75rem;color:var(--m);margin-bottom:.2rem">Área</label>
+<select id="ncFilterArea" onchange="renderNCs()"><option value="">Todas</option></select></div>
+<div><label style="display:block;font-size:.75rem;color:var(--m);margin-bottom:.2rem">Status</label>
+<select id="ncFilterStatus" onchange="renderNCs()">
+<option value="">Todos</option>
+<option value="aberto">Aberto</option>
+<option value="andamento">Em Andamento</option>
+<option value="concluido">Concluído</option>
+<option value="verificado">Verificado</option>
+</select></div>
+<div><label style="display:block;font-size:.75rem;color:var(--m);margin-bottom:.2rem">Dealer / Filial</label>
+<input type="text" id="ncFilterDealer" placeholder="Filtrar por dealer" oninput="renderNCs()" style="padding:.5rem .7rem;border:1px solid var(--b);border-radius:8px;font-size:.88rem"></div>
+<span class="mode-tag" id="ncModeTag">Modo Visualização</span>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1.1rem">
+<button class="btn bp" onclick="generateActionPlanPDF()">📄 Gerar PDF do Plano de Ação</button>
+<button class="btn bs" onclick="exportNCs()">⬇️ Exportar Dados (JSON)</button>
+<label class="btn bs" style="display:inline-flex;align-items:center;cursor:pointer">⬆️ Importar Dados<input type="file" accept="application/json" style="display:none" onchange="importNCs(this)"></label>
+</div>
+<div class="nc-list" id="ncList"></div>
 </div>
 <p class="fn">Carmak • Checklist Auditoria Interna ASEC • Itens Mandatórios e Evidenciáveis destacados</p>
 </div>
@@ -336,6 +403,7 @@ function setA(k, i, s) {
   c.classList.remove("ok", "nok");
   if (s === "ok") c.classList.add("ok");
   if (s === "nok") c.classList.add("nok");
+  if (s === "nok") upsertNC(k, i);
   updateAreaScore();
 }
 
@@ -406,6 +474,442 @@ function closeLightbox() {
   document.getElementById("lightbox").classList.remove("show");
 }
 
+/* ===================== PLANO DE AÇÃO / NÃO CONFORMIDADES ===================== */
+const EDIT_PIN = "ASEC2026"; // Senha de edição do Plano de Ação — altere aqui se necessário.
+let editMode = sessionStorage.getItem("asec_edit_mode") === "1";
+
+function toggleEditMode() {
+  if (!editMode) {
+    const pin = prompt("Digite o PIN de auditor para habilitar o Modo Auditor (edição do Plano de Ação):");
+    if (pin === null) return;
+    if (pin !== EDIT_PIN) { alert("PIN incorreto."); return; }
+    editMode = true;
+    sessionStorage.setItem("asec_edit_mode", "1");
+  } else {
+    if (!confirm("Voltar para o Modo Visualização (somente leitura)?")) return;
+    editMode = false;
+    sessionStorage.setItem("asec_edit_mode", "0");
+  }
+  updateLockUI();
+}
+
+function updateLockUI() {
+  const btn = document.getElementById("lockBtn");
+  const tag = document.getElementById("ncModeTag");
+  if (editMode) {
+    btn.textContent = "🔓 Modo Auditor (editando)";
+    btn.classList.add("unlocked");
+    if (tag) { tag.textContent = "Modo Auditor — edição habilitada"; tag.className = "mode-tag mode-edit"; }
+  } else {
+    btn.textContent = "🔒 Modo Visualização";
+    btn.classList.remove("unlocked");
+    if (tag) { tag.textContent = "Modo Visualização — somente leitura"; tag.className = "mode-tag mode-view"; }
+  }
+  if (document.getElementById("view-ncs").classList.contains("on")) renderNCs();
+}
+
+function getNCs() {
+  try { return JSON.parse(localStorage.getItem("asec_ncs") || "[]"); }
+  catch { return []; }
+}
+function saveNCs(list) {
+  try { localStorage.setItem("asec_ncs", JSON.stringify(list)); return true; }
+  catch (e) {
+    alert("Não foi possível salvar o Plano de Ação: armazenamento local cheio. Exporte os dados (JSON) e remova fotos/itens antigos.");
+    return false;
+  }
+}
+
+function ncKey(dealer, area, code) {
+  return (dealer || "sem-dealer").trim().toLowerCase() + "|" + area + "|" + code;
+}
+
+function upsertNC(area, code) {
+  const dealer = document.getElementById("dealerName").value.trim() || "Não informado";
+  const auditor = document.getElementById("auditorName").value.trim() || "Não informado";
+  const auditDate = document.getElementById("auditDate").value || new Date().toISOString().slice(0, 10);
+  const q = A[area].q.find(x => x.i === code);
+  if (!q) return;
+  const key = ncKey(dealer, area, code);
+  const list = getNCs();
+  let nc = list.find(x => x.key === key);
+  const nowIso = new Date().toISOString();
+  if (!nc) {
+    nc = {
+      id: "nc_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+      key: key,
+      area: area,
+      areaName: A[area].n,
+      code: code,
+      question: q.t,
+      mandatory: !!q.m,
+      evidenciavel: !!q.e,
+      dealer: dealer,
+      status: "aberto",
+      responsible: "",
+      dueDate: "",
+      plan: "",
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      detectedBy: auditor,
+      detectedOn: auditDate,
+      updates: [{ date: nowIso, author: auditor, text: "Não conformidade identificada na auditoria de " + auditDate + "." }]
+    };
+    list.unshift(nc);
+  } else {
+    nc.updatedAt = nowIso;
+    if (nc.status === "concluido" || nc.status === "verificado") {
+      nc.status = "aberto";
+      nc.updates.push({ date: nowIso, author: auditor, text: "Reaberta automaticamente: item voltou a ser Não Conforme na auditoria de " + auditDate + "." });
+    }
+  }
+  saveNCs(list);
+  updateNCBadge();
+}
+
+function updateNCBadge() {
+  const list = getNCs();
+  const openCount = list.filter(n => n.status === "aberto" || n.status === "andamento").length;
+  const b = document.getElementById("ncBadge");
+  if (!b) return;
+  if (openCount > 0) { b.textContent = openCount; b.style.display = "flex"; }
+  else { b.style.display = "none"; }
+}
+
+function populateNCAreaFilter() {
+  const sel = document.getElementById("ncFilterArea");
+  if (!sel || sel.dataset.filled) return;
+  Object.keys(A).forEach(k => {
+    const opt = document.createElement("option");
+    opt.value = k; opt.textContent = A[k].n;
+    sel.appendChild(opt);
+  });
+  sel.dataset.filled = "1";
+}
+
+const NC_STATUS_LABEL = { aberto: "Aberto", andamento: "Em Andamento", concluido: "Concluído", verificado: "Verificado" };
+const NC_STATUS_ORDER = { aberto: 0, andamento: 1, concluido: 2, verificado: 3 };
+
+function fmtDate(iso) {
+  if (!iso) return "—";
+  try { return new Date(iso).toLocaleString("pt-BR"); } catch { return iso; }
+}
+
+function renderNCs() {
+  populateNCAreaFilter();
+  updateLockUIQuiet();
+  const areaF = document.getElementById("ncFilterArea").value;
+  const statusF = document.getElementById("ncFilterStatus").value;
+  const dealerF = (document.getElementById("ncFilterDealer").value || "").trim().toLowerCase();
+  let list = getNCs();
+  if (areaF) list = list.filter(n => n.area === areaF);
+  if (statusF) list = list.filter(n => n.status === statusF);
+  if (dealerF) list = list.filter(n => (n.dealer || "").toLowerCase().includes(dealerF));
+  list.sort((a, b) => (NC_STATUS_ORDER[a.status] - NC_STATUS_ORDER[b.status]) || (new Date(b.updatedAt) - new Date(a.updatedAt)));
+
+  const cont = document.getElementById("ncList");
+  cont.innerHTML = "";
+  if (list.length === 0) {
+    cont.innerHTML = '<div class="empty">Nenhuma não conformidade encontrada.<br>Itens marcados como "Não Conforme" no checklist aparecerão aqui automaticamente.</div>';
+    updateNCBadge();
+    return;
+  }
+  list.forEach(nc => cont.appendChild(buildNCCard(nc)));
+  updateNCBadge();
+}
+
+function updateLockUIQuiet() {
+  const btn = document.getElementById("lockBtn");
+  const tag = document.getElementById("ncModeTag");
+  if (!btn || !tag) return;
+  if (editMode) {
+    btn.textContent = "🔓 Modo Auditor (editando)"; btn.classList.add("unlocked");
+    tag.textContent = "Modo Auditor — edição habilitada"; tag.className = "mode-tag mode-edit";
+  } else {
+    btn.textContent = "🔒 Modo Visualização"; btn.classList.remove("unlocked");
+    tag.textContent = "Modo Visualização — somente leitura"; tag.className = "mode-tag mode-view";
+  }
+}
+
+function buildNCCard(nc) {
+  const card = document.createElement("div");
+  card.className = "nc-card st-" + nc.status;
+
+  const head = document.createElement("div");
+  head.className = "nc-head";
+  const h4 = document.createElement("h4");
+  h4.textContent = nc.code + " • " + nc.areaName;
+  const badge = document.createElement("span");
+  badge.className = "nc-status-badge sb-" + nc.status;
+  badge.textContent = NC_STATUS_LABEL[nc.status] || nc.status;
+  head.appendChild(h4); head.appendChild(badge);
+  card.appendChild(head);
+
+  const sub = document.createElement("div");
+  sub.className = "nc-sub";
+  sub.textContent = "Dealer/Filial: " + nc.dealer + "  •  Detectado por " + nc.detectedBy + " em " + nc.detectedOn + (nc.mandatory ? "  •  Mandatório" : "") + (nc.evidenciavel ? "  •  Evidenciável" : "");
+  card.appendChild(sub);
+
+  const q = document.createElement("div");
+  q.className = "nc-q";
+  q.textContent = nc.question;
+  card.appendChild(q);
+
+  const grid = document.createElement("div");
+  grid.className = "nc-grid";
+
+  const mkField = (labelTxt, tag, value, type) => {
+    const wrap = document.createElement("div");
+    const lb = document.createElement("label"); lb.textContent = labelTxt;
+    wrap.appendChild(lb);
+    let el;
+    if (tag === "select") {
+      el = document.createElement("select");
+      Object.keys(NC_STATUS_LABEL).forEach(k => {
+        const o = document.createElement("option"); o.value = k; o.textContent = NC_STATUS_LABEL[k];
+        if (k === value) o.selected = true;
+        el.appendChild(o);
+      });
+    } else {
+      el = document.createElement(tag);
+      if (type) el.type = type;
+      el.value = value || "";
+    }
+    el.disabled = !editMode;
+    wrap.appendChild(el);
+    return { wrap, el };
+  };
+
+  const fStatus = mkField("Status", "select", nc.status);
+  const fResp = mkField("Responsável", "input", nc.responsible, "text");
+  fResp.el.placeholder = "Nome do responsável";
+  const fDue = mkField("Prazo", "input", nc.dueDate, "date");
+  grid.appendChild(fStatus.wrap); grid.appendChild(fResp.wrap); grid.appendChild(fDue.wrap);
+
+  const planWrap = document.createElement("div");
+  const planLb = document.createElement("label"); planLb.textContent = "Plano de Ação / Causa Raiz / Contramedida";
+  const planTa = document.createElement("textarea");
+  planTa.value = nc.plan || ""; planTa.placeholder = "Descreva a causa raiz e a contramedida definida...";
+  planTa.disabled = !editMode;
+  planWrap.appendChild(planLb); planWrap.appendChild(planTa);
+  grid.appendChild(planWrap);
+  card.appendChild(grid);
+
+  if (editMode) {
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "btn bp"; saveBtn.style.fontSize = ".82rem"; saveBtn.style.padding = ".45rem .9rem";
+    saveBtn.textContent = "💾 Salvar Alterações";
+    saveBtn.onclick = () => {
+      const list = getNCs();
+      const rec = list.find(x => x.id === nc.id);
+      if (!rec) return;
+      const oldStatus = rec.status;
+      rec.status = fStatus.el.value;
+      rec.responsible = fResp.el.value.trim();
+      rec.dueDate = fDue.el.value;
+      rec.plan = planTa.value.trim();
+      rec.updatedAt = new Date().toISOString();
+      if (oldStatus !== rec.status) {
+        rec.updates.push({ date: rec.updatedAt, author: document.getElementById("auditorName").value.trim() || "Auditor", text: "Status alterado de \"" + (NC_STATUS_LABEL[oldStatus] || oldStatus) + "\" para \"" + NC_STATUS_LABEL[rec.status] + "\"." });
+      }
+      if (saveNCs(list)) { alert("Alterações salvas."); renderNCs(); }
+    };
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn bd-btn"; delBtn.style.fontSize = ".82rem"; delBtn.style.padding = ".45rem .9rem"; delBtn.style.marginLeft = ".5rem";
+    delBtn.textContent = "🗑️ Excluir";
+    delBtn.onclick = () => {
+      if (!confirm("Excluir esta não conformidade e todo o histórico do plano de ação?")) return;
+      const list = getNCs().filter(x => x.id !== nc.id);
+      saveNCs(list); renderNCs();
+    };
+    card.appendChild(saveBtn); card.appendChild(delBtn);
+  } else {
+    const note = document.createElement("div");
+    note.className = "readonly-note";
+    note.textContent = "🔒 Somente leitura — apenas o auditor pode editar o status e o plano de ação.";
+    card.appendChild(note);
+  }
+
+  const updWrap = document.createElement("div");
+  updWrap.className = "nc-updates";
+  const h5 = document.createElement("h5"); h5.textContent = "Histórico de Atualizações";
+  updWrap.appendChild(h5);
+  (nc.updates || []).slice().reverse().forEach(u => {
+    const up = document.createElement("div");
+    up.className = "nc-upd";
+    const meta = document.createElement("div");
+    meta.className = "u-meta";
+    meta.textContent = fmtDate(u.date) + " — " + u.author;
+    const txt = document.createElement("div");
+    txt.textContent = u.text;
+    up.appendChild(meta); up.appendChild(txt);
+    if (u.imgs && u.imgs.length) {
+      const g = document.createElement("div");
+      g.className = "gallery";
+      u.imgs.forEach(im => {
+        const t = document.createElement("div");
+        t.className = "thumb";
+        const img = document.createElement("img");
+        img.src = im.data; img.alt = "Evidência da ação";
+        img.onclick = () => { document.getElementById("lightboxImg").src = im.data; document.getElementById("lightbox").classList.add("show"); };
+        t.appendChild(img);
+        g.appendChild(t);
+      });
+      up.appendChild(g);
+    }
+    updWrap.appendChild(up);
+  });
+
+  if (editMode) {
+    const addWrap = document.createElement("div");
+    addWrap.className = "nc-add-upd";
+    const ta = document.createElement("textarea");
+    ta.placeholder = "Registrar novo andamento da ação corretiva...";
+    const row = document.createElement("div");
+    row.className = "row";
+    const fileLbl = document.createElement("label");
+    fileLbl.className = "add-photo-btn";
+    fileLbl.textContent = "📷 Anexar Fotos";
+    const fileInp = document.createElement("input");
+    fileInp.type = "file"; fileInp.accept = "image/*"; fileInp.multiple = true; fileInp.style.display = "none";
+    let pendingImgs = [];
+    const cntSpan = document.createElement("span");
+    cntSpan.className = "photo-count";
+    cntSpan.textContent = "Nenhuma foto anexada";
+    fileInp.onchange = async () => {
+      const files = Array.from(fileInp.files || []);
+      for (const f of files) {
+        try { const data = await compressImage(f); pendingImgs.push({ data, name: f.name }); } catch (e) {}
+      }
+      fileInp.value = "";
+      cntSpan.textContent = pendingImgs.length ? pendingImgs.length + " foto(s) selecionada(s)" : "Nenhuma foto anexada";
+    };
+    fileLbl.appendChild(fileInp);
+    const addBtn = document.createElement("button");
+    addBtn.className = "btn bg"; addBtn.style.fontSize = ".82rem"; addBtn.style.padding = ".45rem .9rem";
+    addBtn.textContent = "➕ Adicionar Atualização";
+    addBtn.onclick = () => {
+      const text = ta.value.trim();
+      if (!text && pendingImgs.length === 0) { alert("Escreva uma atualização ou anexe uma foto."); return; }
+      const list = getNCs();
+      const rec = list.find(x => x.id === nc.id);
+      if (!rec) return;
+      rec.updates.push({
+        date: new Date().toISOString(),
+        author: document.getElementById("auditorName").value.trim() || "Auditor",
+        text: text || "(evidência anexada sem comentário)",
+        imgs: pendingImgs
+      });
+      rec.updatedAt = new Date().toISOString();
+      if (saveNCs(list)) renderNCs();
+    };
+    row.appendChild(fileLbl); row.appendChild(cntSpan); row.appendChild(addBtn);
+    addWrap.appendChild(ta); addWrap.appendChild(row);
+    updWrap.appendChild(addWrap);
+  }
+
+  card.appendChild(updWrap);
+  return card;
+}
+
+function exportNCs() {
+  const list = getNCs();
+  if (!list.length) { alert("Não há dados do Plano de Ação para exportar."); return; }
+  const blob = new Blob([JSON.stringify(list, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "PlanoDeAcao_ASEC_" + new Date().toISOString().slice(0, 10) + ".json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importNCs(inputEl) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const incoming = JSON.parse(e.target.result);
+      if (!Array.isArray(incoming)) throw new Error("Formato inválido");
+      const current = getNCs();
+      const byKey = Object.fromEntries(current.map(n => [n.key, n]));
+      incoming.forEach(inc => {
+        const existing = byKey[inc.key];
+        if (!existing || new Date(inc.updatedAt) > new Date(existing.updatedAt)) {
+          byKey[inc.key] = inc;
+        }
+      });
+      const merged = Object.values(byKey);
+      if (saveNCs(merged)) { alert("Plano de Ação importado com sucesso (" + incoming.length + " registro(s) recebidos)."); renderNCs(); }
+    } catch (err) {
+      alert("Arquivo inválido. Selecione um JSON exportado por este sistema.");
+    }
+  };
+  reader.readAsText(file);
+  inputEl.value = "";
+}
+
+async function generateActionPlanPDF() {
+  const list = getNCs();
+  if (!list.length) { alert("Não há não conformidades registradas."); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pw = doc.internal.pageSize.getWidth(), m = 14;
+
+  doc.setFillColor(11, 31, 63);
+  doc.rect(0, 0, pw, 26, "F");
+  doc.setDrawColor(200, 162, 77); doc.setLineWidth(1.2);
+  doc.line(0, 26, pw, 26);
+  doc.setTextColor(255, 255, 255); doc.setFontSize(15); doc.setFont("helvetica", "bold");
+  doc.text("Plano de Ação — Não Conformidades ASEC", m, 12);
+  doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(240, 223, 168);
+  doc.text("Carmak • Toyota Material Handling • Gerado em " + new Date().toLocaleString("pt-BR"), m, 20);
+
+  const body = list.map(n => [
+    n.code, n.areaName, n.dealer, NC_STATUS_LABEL[n.status] || n.status, n.responsible || "—", n.dueDate || "—"
+  ]);
+  doc.autoTable({
+    startY: 32,
+    head: [["Código", "Área", "Dealer/Filial", "Status", "Responsável", "Prazo"]],
+    body: body,
+    theme: "striped",
+    headStyles: { fillColor: [11, 31, 63], textColor: [243, 228, 187], fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 1.8, overflow: "linebreak" },
+    margin: { left: m, right: m }
+  });
+
+  let y = doc.lastAutoTable.finalY + 10;
+  doc.setTextColor(21, 34, 56);
+  for (const n of list) {
+    if (y > 250) { doc.addPage(); y = 18; }
+    doc.setFillColor(243, 228, 187);
+    doc.rect(m, y - 5, pw - m * 2, 7, "F");
+    doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(163, 129, 47);
+    doc.text(n.code + " • " + n.areaName + " • " + n.dealer + " • " + (NC_STATUS_LABEL[n.status] || n.status), m + 2, y);
+    y += 7;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(21, 34, 56);
+    const ql = doc.splitTextToSize(n.question, pw - m * 2);
+    doc.text(ql, m, y); y += ql.length * 4 + 2;
+    doc.setFont("helvetica", "bold"); doc.text("Responsável: " + (n.responsible || "—") + "   Prazo: " + (n.dueDate || "—"), m, y); y += 5;
+    if (n.plan) {
+      doc.setFont("helvetica", "normal");
+      const pl = doc.splitTextToSize("Plano/Causa raiz: " + n.plan, pw - m * 2);
+      doc.text(pl, m, y); y += pl.length * 4 + 2;
+    }
+    doc.setFont("helvetica", "italic"); doc.setFontSize(7.5); doc.setTextColor(96, 108, 133);
+    (n.updates || []).forEach(u => {
+      if (y > 275) { doc.addPage(); y = 18; }
+      const ul = doc.splitTextToSize("• " + fmtDate(u.date) + " (" + u.author + "): " + u.text, pw - m * 2 - 4);
+      doc.text(ul, m + 4, y); y += ul.length * 3.6 + 1;
+    });
+    doc.setTextColor(21, 34, 56);
+    y += 6;
+  }
+
+  doc.save("PlanoDeAcao_ASEC_" + new Date().toISOString().slice(0, 10) + ".pdf");
+}
+/* =================== FIM PLANO DE AÇÃO / NÃO CONFORMIDADES =================== */
+
 function calc(k) {
   const qs = A[k].q;
   let an = 0, ok = 0;
@@ -427,9 +931,12 @@ function showView(v) {
   document.getElementById("view-select").classList.toggle("on", v === "select");
   document.getElementById("view-checklist").classList.toggle("on", v === "checklist");
   document.getElementById("view-history").classList.toggle("on", v === "history");
+  document.getElementById("view-ncs").classList.toggle("on", v === "ncs");
   document.getElementById("btnNova").classList.toggle("on", v === "select" || v === "checklist");
   document.getElementById("btnHist").classList.toggle("on", v === "history");
+  document.getElementById("btnNC").classList.toggle("on", v === "ncs");
   if (v === "history") renderHistory();
+  if (v === "ncs") renderNCs();
 }
 
 function getHistory() {
@@ -642,6 +1149,8 @@ async function generatePDF() {
 }
 
 initAreaCards();
+updateLockUI();
+updateNCBadge();
 </script>
 </body>
 </html>
