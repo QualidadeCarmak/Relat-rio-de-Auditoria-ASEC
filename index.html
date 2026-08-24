@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checklist Auditoria Interna ASEC - Carmak</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{--p:#003938;--pd:#002726;--s:#198754;--d:#dc3545;--bg:#f0f4f4;--c:#fff;--b:#d0d8d8;--t:#1a2a2a;--m:#5a6a6a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t);line-height:1.5;min-height:100vh}
+header{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;padding:1rem 1.5rem;box-shadow:0 2px 12px rgba(0,57,56,.25);position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap}
+header img.logo{height:42px;width:auto}
+header .titles h1{font-size:1.25rem;font-weight:700}
+header .titles p{font-size:.85rem;opacity:.85;margin-top:.15rem}
+.nav{display:flex;gap:.5rem;margin-left:auto}
+.nav button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:.45rem 1rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:.9rem}
+.nav button:hover,.nav button.on{background:#fff;color:var(--p)}
+.container{max-width:1100px;margin:0 auto;padding:1.5rem}
+.area-select{display:none}.area-select.on{display:block}
+.meta{background:var(--c);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;box-shadow:0 1px 4px rgba(0,0,0,.06);display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
+.meta label{display:block;font-size:.8rem;color:var(--m);margin-bottom:.3rem}
+.meta input{width:100%;padding:.55rem .75rem;border:1px solid var(--b);border-radius:8px;font-size:.95rem}
+.area-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:1rem}
+.area-card{background:var(--c);border:2px solid var(--b);border-radius:14px;padding:1.75rem 1.25rem;text-align:center;cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.area-card:hover{border-color:var(--p);transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,57,56,.12)}
+.area-card .icon{font-size:2.2rem;margin-bottom:.6rem}
+.area-card h3{font-size:1.1rem;color:var(--p);margin-bottom:.3rem}
+.area-card p{font-size:.8rem;color:var(--m)}
+.checklist-view{display:none}.checklist-view.on{display:block}
+.back-bar{display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.back-bar button{background:var(--p);color:#fff;border:none;padding:.5rem 1rem;border-radius:8px;font-weight:600;cursor:pointer}
+.back-bar h2{font-size:1.2rem;color:var(--p);flex:1}
+.score-pill{background:var(--p);color:#fff;padding:.4rem .9rem;border-radius:20px;font-weight:700;font-size:.95rem}
+.qc{background:var(--c);border-radius:12px;padding:1.1rem 1.25rem;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.05);border-left:4px solid #adb5bd}
+.qc.ok{border-left-color:var(--s)}.qc.nok{border-left-color:var(--d)}
+.qh{display:flex;flex-wrap:wrap;align-items:flex-start;gap:.5rem;margin-bottom:.6rem}
+.qcde{font-weight:700;color:var(--p);font-size:.95rem;white-space:nowrap}
+.qtx{flex:1;font-size:.95rem}
+.bdg{display:flex;gap:.35rem;flex-wrap:wrap}
+.bd{font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:4px;text-transform:uppercase}
+.bm{background:#f8d7da;color:#842029}.be{background:#cff4fc;color:#055160}
+.gd{font-size:.82rem;color:var(--m);background:#f5f8f8;padding:.6rem .8rem;border-radius:6px;margin-bottom:.8rem;white-space:pre-line}
+.ar{display:flex;flex-wrap:wrap;align-items:center;gap:1rem}
+.rg{display:flex;gap:.75rem}
+.rg label{display:flex;align-items:center;gap:.35rem;cursor:pointer;font-weight:500;padding:.35rem .7rem;border-radius:6px;border:1px solid var(--b)}
+.rg input{accent-color:var(--p)}
+.rg label:has(input:checked){border-color:var(--p);background:#e6f2f2}
+.rg .ol:has(input:checked){border-color:var(--s);background:#d1e7dd}
+.rg .nl:has(input:checked){border-color:var(--d);background:#f8d7da}
+.eb{flex:1;min-width:180px}
+.eb input[type=file]{font-size:.85rem;width:100%}
+.pi{margin-top:.5rem;max-width:140px;max-height:90px;border-radius:6px;border:1px solid var(--b);display:none}
+.pi.show{display:block}
+.act{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.5rem;position:sticky;bottom:1rem;z-index:50}
+.btn{padding:.7rem 1.3rem;border:none;border-radius:8px;font-weight:600;font-size:.95rem;cursor:pointer}
+.bp{background:var(--p);color:#fff}.bp:hover{background:var(--pd)}
+.bs{background:#6c757d;color:#fff}.bg{background:var(--s);color:#fff}
+.history-view{display:none}.history-view.on{display:block}
+.hist-list{display:flex;flex-direction:column;gap:.75rem}
+.hist-card{background:var(--c);border-radius:12px;padding:1.1rem 1.25rem;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;flex-wrap:wrap;align-items:center;gap:1rem;border-left:4px solid var(--p)}
+.hist-card .info{flex:1;min-width:200px}
+.hist-card .info strong{display:block;font-size:1rem;color:var(--p)}
+.hist-card .info span{font-size:.85rem;color:var(--m)}
+.hist-card .score{font-size:1.4rem;font-weight:700;color:var(--p);min-width:70px;text-align:center}
+.hist-card .actions{display:flex;gap:.5rem}
+.hist-card .actions button{padding:.4rem .8rem;border-radius:6px;border:none;font-weight:600;cursor:pointer;font-size:.85rem}
+.btn-view{background:var(--p);color:#fff}.btn-del{background:#f8d7da;color:#842029}
+.empty{text-align:center;padding:3rem;color:var(--m)}
+.fn{text-align:center;font-size:.8rem;color:var(--m);margin-top:2rem;padding-bottom:2rem}
+@media(max-width:600px){header{flex-wrap:wrap}.nav{margin-left:0;width:100%}.ar{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+<header>
+<img class="logo" src="Logotipo Carmak (Branco).png" alt="Carmak" onerror="this.style.display='none'">
+<div class="titles">
+<h1>Checklist Auditoria Interna ASEC</h1>
+<p>Carmak • Toyota Material Handling</p>
+</div>
+<div class="nav">
+<button id="btnNova" class="on" onclick="showView('select')">Nova Auditoria</button>
+<button id="btnHist" onclick="showView('history')">Histórico</button>
+</div>
+</header>
+<div class="container">
+<div id="view-select" class="area-select on">
+<div class="meta">
+<div><label>Nome do Auditor *</label><input type="text" id="auditorName" placeholder="Seu nome completo"></div>
+<div><label>Dealer / Filial *</label><input type="text" id="dealerName" placeholder="Nome do dealer ou filial"></div>
+<div><label>Data da Auditoria</label><input type="date" id="auditDate"></div>
+<div><label>Observações Gerais</label><input type="text" id="generalNotes" placeholder="Opcional"></div>
+</div>
+<h2 style="color:var(--p);margin-bottom:.5rem;font-size:1.15rem">Selecione a área a ser auditada</h2>
+<p style="color:var(--m);margin-bottom:1rem;font-size:.9rem">Escolha o setor para iniciar o checklist</p>
+<div class="area-grid" id="areaGrid"></div>
+</div>
+<div id="view-checklist" class="checklist-view">
+<div class="back-bar">
+<button onclick="showView('select')">← Voltar</button>
+<h2 id="areaTitle">Área</h2>
+<div class="score-pill" id="areaScore">—</div>
+</div>
+<div id="questionsContainer"></div>
+<div class="act">
+<button class="btn bp" onclick="generatePDF()">📄 Gerar Relatório PDF</button>
+<button class="btn bg" onclick="saveToHistory()">💾 Salvar no Histórico</button>
+<button class="btn bs" onclick="resetCurrent()">🔄 Limpar Respostas</button>
+</div>
+</div>
+<div id="view-history" class="history-view">
+<h2 style="color:var(--p);margin-bottom:1rem">Histórico de Relatórios</h2>
+<div class="hist-list" id="histList"></div>
+</div>
+<p class="fn">Carmak • Checklist Auditoria Interna ASEC • Itens Mandatórios e Evidenciáveis destacados</p>
+</div>
+<script>
+
+// Adapt old structure: A has n and q; add icons
+const ICONS = {RH:"👥",Seg:"🛡️",Pos:"🔧",Ofi:"🏭",Alm:"📦"};
+const A={
+RH:{n:"Recursos Humanos",q:[
+{i:"Q1-1",t:"O dealer / filial possui organograma para todos os membros do departamento de peças e serviços e há descrição das funções de cada cargo mencionado no organograma?",g:"Verifique o organograma e as descrições das funções. Analise se estão atualizados e se existe política de atualização.",m:0,e:0},
+{i:"Q2-1",t:"Existe um mapa de habilidades para todos os técnicos e os treinamentos são planejados baseado neste mapa de habilidades?",g:"(Evidenciável)",m:0,e:1},
+{i:"Q2-2",t:"Existe um programa motivacional para estimular os técnicos a aperfeiçoar suas habilidades técnicas através de treinamentos?",g:"Programa de incentivos com regras claras, compartilhado e baseado na melhoria de conhecimento/habilidades.",m:0,e:0}
+]},
+Seg:{n:"Segurança",q:[
+{i:"Q1-2",t:"Todos os técnicos usam uniformes corporativos?",g:"Mínimo 02 conjuntos. Verificar ficha de EPI e manual de identidade visual Toyota.",m:1,e:1},
+{i:"Q3-1",t:"Existe uma política relacionada a segurança e meio ambiente para materiais perigosos (LLC, Baterias, Óleo usado entre outros)?",g:"Política de armazenagem e descarte responsável. Área designada e identificada.",m:0,e:0},
+{i:"Q3-2",t:"Os locais de armazenamento de óleo usado e baterias danificadas estão claramente identificados? Estão protegidos por teto e de uma maneira que não prejudica o meio ambiente?",g:"Identificados, protegidos da chuva, bandeja de contenção.",m:1,e:1},
+{i:"Q3-3",t:"Existe um procedimento operacional para descarte de óleo usado?",g:"Pessoa responsável + procedimento de emergência visível.",m:0,e:0},
+{i:"Q3-4",t:"Existe material absorvente de óleo disponível sempre que necessário e está em boas condições de uso? Existe um padrão para reabastecimento do produto?",g:"Local específico identificado + ponto de reposição visível.",m:1,e:1},
+{i:"Q3-5",t:"O relatório de risco ambiental é enviado para as pessoas responsáveis em tempo hábil? São tomadas as medidas preventivas para que não ocorra novamente?",g:"Procedimento para relatar risco, causa raiz e contramedida. Compartilhamento com a equipe.",m:0,e:1},
+{i:"Q4-1",t:"Existe uma política de segurança da empresa para as operações de segurança?",g:"Pessoa responsável apta + política com itens obrigatórios e EPIs necessários.",m:0,e:0},
+{i:"Q4-3",t:"O dealer / filial entende e compreende quais qualificações de segurança são necessárias para cada membro da equipe em sua operação?",g:"Lista de qualificações por técnico atualizada. Verificar Skill Map.",m:0,e:1},
+{i:"Q4-5",t:"Existe check list de Pré-Operação nos equipamentos de instalação? Exemplos: (Esmeril, Tornos, Furadeiras, Máquinas de Solda e etc.).",g:"Equipamentos listados e identificados. Check list próximo e atualizado.",m:0,e:1},
+{i:"Q4-7",t:"Existe um Kit de primeiros socorros disponível? Ele é mantido em boas condições?",g:"Local fechado, itens designados, controle de validade sem vencidos.",m:1,e:1},
+{i:"Q4-8",t:"Existe extintores de incêndio disponíveis para uso?",g:"Acesso livre, identificações visíveis, inspeções atualizadas.",m:1,e:1},
+{i:"Q4-9",t:"Objetos de metais afiados e baixas saliências têm identificações ou proteção?",g:"Indicação de aviso e/ou proteção. Verificar banheiro de clientes.",m:0,e:0},
+{i:"Q4-10",t:"Todas as escadas na área de Peças e Serviços têm corrimãos e algum método para evitar escorregamento? Estão bem conservados em condições limpas?",g:"Corrimão + antiderrapante. Livres de obstruções e secas.",m:0,e:0},
+{i:"Q4-11",t:"O relatório de acidente com os membros da equipe é submetido às pessoas responsáveis imediatamente após o acidente? E as medidas preventivas contra recorrência são tomadas?",g:"Política de relatório, causa raiz, contramedida e compartilhamento.",m:0,e:0},
+{i:"Q5-2",t:"O cliente pode se localizar facilmente dentro do dealer / filial ao fazer uma visita? Ele encontra o departamento desejado através de sinalizações?",g:"Sinalizações claras e fáceis de entender.",m:1,e:1},
+{i:"Q9-10-2",t:"O relatório de acidente no cliente é submetido à alta direção da matriz em tempo hábil?",g:"Procedimento padrão para reportar acidentes no cliente à matriz.",m:0,e:0}
+]},
+Pos:{n:"Pós Venda",q:[
+{i:"Q1-2",t:"Todos os técnicos usam uniformes corporativos?",g:"Mínimo 02 conjuntos. EPI e identidade visual Toyota.",m:1,e:1},
+{i:"Q5-1",t:"O dealer / filial está usando o logotipo definido pela Toyota como indicação principal?",g:"Logo Toyota na frente do logo do dealer.",m:1,e:1},
+{i:"Q5-3",t:"Existe estacionamento dedicado para clientes / visitantes? Eles estão claramente identificados?",g:"Estacionamento dedicado com linhas e sinais.",m:0,e:1},
+{i:"Q5-4",t:"O horário de funcionamento do dealer / filial está claramente indicado para os clientes, existe telefone especial em casos de emergência fora do horário de expediente?",g:"Horário e telefone de emergência visíveis.",m:0,e:1},
+{i:"Q7-1",t:"As vans de serviços estão identificadas de modo que o cliente possa identificar que é um serviço de empilhadeira Toyota?",g:"Padrão de identidade visual Toyota.",m:0,e:1},
+{i:"Q7-2",t:"As partes internas e externas das vans são mantidas em boas condições e organizadas?",g:"Externa limpa sem riscos/adesivos. Interna organizada sem lixo.",m:1,e:1},
+{i:"Q7-3",t:"As ferramentas, equipamentos e peças têm locais de armazenagem nas vans de serviços? E cada item é armazenado em seu próprio local e tem a designação apropriada?",g:"Lista de ferramentas. Local designado com indicação.",m:1,e:1},
+{i:"Q8-5",t:"O dealer / filial explica para o cliente como usar e manter a empilhadeira nova no momento da entrega?",g:"Explicar funcionamento, manutenção e cronograma.",m:0,e:0},
+{i:"Q8-6",t:"O Dealer / Filial atualiza as informações de cadastro do cliente no momento da entrega do equipamento?",g:"Cadastro com máquina, cliente, histórico, entrega, PDI. Procedimento escrito.",m:0,e:0},
+{i:"Q9-1-1",t:"O dealer / filial registra a solicitação de serviço do cliente com as próprias palavras dele?",g:"Formulário específico. Confirmar anotações com o cliente.",m:0,e:0},
+{i:"Q9-1-2",t:"O consultor de serviços aloca um técnico apropriado baseado em habilidade e qualificação de um modo oportuno quando ele / ela recebe pedido de serviço?",g:"Alocação oportuna por qualificação.",m:0,e:0},
+{i:"Q9-2",t:"O histórico de atendimento anteriores do cliente é revisado antes da ligação ou visita no cliente?",g:"Histórico acessível no sistema ou papel.",m:0,e:0},
+{i:"Q9-3-1",t:"O dealer / filial tem programação para os técnicos de campo e internos? E estão claramente visíveis?",g:"Plano de visita e cronograma de oficina visíveis.",m:0,e:1},
+{i:"Q9-3-2",t:"O cronograma dos técnicos é planejado considerando a eficiência e o indicador de meta mensal do dealer / filial?",g:"Tempo padrão + eficiência + meta. Procedimento escrito.",m:0,e:1},
+{i:"Q9-3-3",t:"O progresso da ordem de serviço é monitorado e gerenciado?",g:"Relato diário + monitoramento + plano de recuperação.",m:0,e:0},
+{i:"Q9-4",t:"Todas as ordens de serviço são atribuídas aos técnicos com base em seu nível de conhecimento e experiência?",g:"Skill Map + experiência.",m:0,e:0},
+{i:"Q9-5",t:"A ordem de serviço contém todas as informações necessárias para o reparo? E em caso de retrabalho, está claramente indicado na ordem de serviço?",g:"Dados completos do cliente/máquina + indicação de retrabalho.",m:0,e:1},
+{i:"Q9-6-1",t:"Em caso de reforma solicitado pelo cliente, o conteúdo da ordem de serviço é revisado com o cliente antes que o técnico inicie os serviços de reparação?",g:"Confirmar trabalho, tempo e custo. Cotação aprovada.",m:0,e:0},
+{i:"Q9-6-2",t:"O revendedor / filial recebe aprovação do cliente para reparo adicional?",g:"Aprovação com explicação clara.",m:0,e:0},
+{i:"Q9-7",t:"Uma inspeção de controle de qualidade é feita após as reformas de máquinas serem concluídas?",g:"Check list de QC em todos os equipamentos.",m:0,e:0},
+{i:"Q9-8-1",t:"O técnico explica claramente para o cliente todo serviço que foi realizado no equipamento após o término?",g:"Explicação + assinatura do cliente.",m:0,e:1},
+{i:"Q9-8-2",t:"O técnico mostra ao cliente todas as peças substituídas?",g:"Mostrar ou oferecer as peças substituídas.",m:0,e:0},
+{i:"Q9-8-3",t:"O técnico informa para o cliente quando será a próxima manutenção preventiva?",g:"Informar data (etiquetas ou similar).",m:0,e:1},
+{i:"Q9-9-1",t:"Os técnicos de campo limpam o equipamento e o site do cliente após finalizar o serviço?",g:"Limpar equipamento e site do cliente.",m:0,e:0},
+{i:"Q9-9-2",t:"O supervisor / gestor utiliza um relatório diário tanto dos técnicos de campo quanto dos da oficina, a fim de verificar a situação do equipamento após a manutenção?",g:"Checar relatório diário e dar instruções.",m:0,e:0},
+{i:"Q9-10-1",t:"O dealer / filial faz pesquisa de satisfação após realizar os serviços nos clientes?",g:"Método de acompanhamento agendado.",m:0,e:0},
+{i:"Q9-11-1",t:"O dealer / filial envia um relatório técnico para a matriz ou departamento responsável em tempo hábil?",g:"5W2H + foto/vídeo quando possível.",m:0,e:0},
+{i:"Q9-11-2",t:"Informações como retrabalho ou dificuldades em efetuar algum reparo, são compartilhados entre todos os técnicos?",g:"Reuniões ou documentos. Verificar evidência.",m:0,e:0},
+{i:"Q10-1",t:"O dealer / filial mantém uma atualização frequente do cadastro dos clientes?",g:"Dados cliente + equipamento + histórico. Atualizar a cada visita.",m:1,e:1},
+{i:"Q10-2",t:"O serviço é realizado de acordo com o que foi acordado em contrato com o cliente?",g:"Lista de máquinas com contrato + plano pré-agendado.",m:0,e:0},
+{i:"Q10-3",t:"O dealer / filial gerencia mensalmente a meta de receita de serviços?",g:"Metas de Serviços + Peças genuínas + locais. Plano de recuperação.",m:1,e:1},
+{i:"Q10-4",t:"O dealer / filial define os KPIs necessários para gerenciar os indicadores de serviços?",g:"Lucratividade, Cobertura, Eficiência. Verificar mensalmente.",m:0,e:1},
+{i:"Q10-5",t:"O dealer / filial gerencia as vendas de peças através de serviços e vendas de peças no balcão separadamente?",g:"Registro separado de vendas de peças.",m:0,e:0},
+{i:"Q10-6",t:"O dealer / filial oferece serviços ou os programas de promoção de peças feito pela matriz?",g:"Implementar e reportar programas da matriz.",m:0,e:0},
+{i:"Q11-1",t:"O dealer / filial identifica com precisão as máquinas de sua região e sabe quais estão com contrato e quais estão sem contrato?",g:"Máquinas confirmadas no território. Incluir outras marcas atendidas.",m:0,e:0},
+{i:"Q11-2",t:"O dealer / filial pode identificar o status de serviço das máquinas sem contrato?",g:"Status identificado por equipe de promoção.",m:0,e:0},
+{i:"Q11-3",t:"O dealer / filial tem um processo constante para a atualização da população de máquinas (UIO)?",g:"Procedimento de atualização + registros de visitas.",m:0,e:0},
+{i:"Q11-4",t:"O dealer / filial define uma meta de venda de contratos de serviços?",g:"Metas anuais/mensais por prioridade.",m:0,e:1},
+{i:"Q11-5",t:"O dealer / filial tem equipes responsáveis pelas atividades vendas de contrato de serviços? E são suficientes para atender a demanda?",g:"Job description + visitas padronizadas + pessoal suficiente.",m:0,e:1},
+{i:"Q11-6",t:"Os departamentos de vendas de máquinas e vendas de contratos de serviços trabalham juntos para a venda do contrato de serviço aos clientes?",g:"Oferta na negociação da máquina. Compartilhamento de leads.",m:0,e:0},
+{i:"Q11-7",t:"O dealer / filial tem um menu de contrato de serviço para oferecer as opções de contratos de serviços ao cliente?",g:"Menus + ferramentas promocionais.",m:1,e:1},
+{i:"Q11-8",t:"O dealer / filial visita clientes para oferecer contratos de serviço?",g:"Cronograma mensal com progresso.",m:0,e:1},
+{i:"Q11-9",t:"O dealer / filial prepara uma lista de clientes e máquinas em potencial para ofertar / prospectar contratos de serviços?",g:"Listas por categoria + plano de visita.",m:0,e:1},
+{i:"Q11-10",t:"O dealer / filial gerencia as atividades promocionais / vendas de contratos de serviços?",g:"Atualização diária/semanal + visualização de status.",m:0,e:0},
+{i:"Q11-11",t:"O revendedor / filial confere o progresso da promoção de contrato de serviço e revisa o plano de visita mensal se necessário?",g:"Verificar no meio e final do mês.",m:0,e:0},
+{i:"Q12-1",t:"As informações de vendas / entregas de máquinas novas são compartilhadas de uma maneira formal com o departamento de Pós-Vendas?",g:"Procedimento escrito + cadastro atualizado.",m:0,e:0},
+{i:"Q12-2",t:"O departamento de Pós-Vendas é apresentado ao cliente pelo departamento de vendas?",g:"Procedimento de apresentação na entrega.",m:0,e:0},
+{i:"Q12-3",t:"O departamento de Pós-Venda informa o departamento de Vendas sobre oportunidades de vendas de máquinas novas?",g:"Compartilhar oportunidades de vendas.",m:0,e:0},
+{i:"Q13-3-3",t:"O dealer / filial registra e analisa as vendas perdidas?",g:"Registrar motivos e contramedidas. Considerar no MAD.",m:0,e:0}
+]},
+Ofi:{n:"Oficina",q:[
+{i:"Q3-2",t:"Os locais de armazenamento de óleo usado e baterias danificadas estão claramente identificados? Estão protegidos por teto e de uma maneira que não prejudica o meio ambiente?",g:"Identificados, protegidos, bandeja de contenção.",m:1,e:1},
+{i:"Q3-3",t:"Existe um procedimento operacional para descarte de óleo usado?",g:"Pessoa responsável + emergência visível.",m:0,e:0},
+{i:"Q3-4",t:"Existe material absorvente de óleo disponível sempre que necessário e está em boas condições de uso? Existe um padrão para reabastecimento do produto?",g:"Local identificado + ponto de reposição.",m:1,e:1},
+{i:"Q4-2",t:"O local de itens de segurança compartilhado é designado e identificado? Os itens de segurança são mantidos em boas condições de uso?",g:"Localização própria, limpos e sem danos.",m:1,e:1},
+{i:"Q4-4",t:"O dealer / filial possui equipamentos de facilities pelos quais possam carregar ou descarregar caminhões de uma maneira segura?",g:"Equipamento + procedimento escrito.",m:1,e:1},
+{i:"Q4-6",t:"Existe inspeção periódica para os equipamentos de facilities da oficina? Ex: (Ponto rolante, Elevador HD, Talha, Compressor de Ar e etc.)",g:"Lista, próxima manutenção e responsável. Histórico.",m:0,e:0},
+{i:"Q5-5",t:"Existe vestiário com armários pessoais para a equipe técnica se trocar antes e depois do expediente? Está limpo e organizado?",g:"Armários limpos, com nome, sem lixo.",m:0,e:1},
+{i:"Q5-6",t:"Os banheiros estão limpos e verificados regularmente? Existe banheiros dedicados para clientes?",g:"Condições de uso de banheiros.",m:0,e:1},
+{i:"Q6-1",t:"O piso da oficina está sem sujeira, óleo, água, graxa e etc.?",g:"Sem sujeira/lixo/vazamento após o dia de trabalho.",m:1,e:1},
+{i:"Q6-2",t:"O dealer / filial tem box de serviço claramente demarcados?",g:"Divisões boas. Uma empilhadeira por box com numeração.",m:1,e:1},
+{i:"Q6-3",t:"A oficina tem uma ventilação adequada?",g:"Sistema de ventilação/exaustão.",m:0,e:1},
+{i:"Q6-4",t:"Tem iluminação adequada na oficina de manutenção e no almoxarifado?",g:"Iluminação + luzes portáteis.",m:0,e:1},
+{i:"Q6-5",t:"O técnico da oficina possui ferramentas básicas para realizar reparos comuns? Cada ferramenta é armazenada em seu próprio local e tem a designação adequada?",g:"Lista + localização (silhueta/recorte).",m:1,e:1},
+{i:"Q6-6",t:"O local de armazenamento de cada ferramenta compartilhada é designado com alguma indicação? Os técnicos podem confirmar quem está utilizando as ferramentas compartilhadas?",g:"Local + visualização de quem está usando.",m:1,e:1},
+{i:"Q6-7",t:"O dealer / filial possui as SSTs apropriadas para atender as empilhadeiras na sua região?",g:"Lista cobre ≥80% das atividades. Ferramentas batem com a lista.",m:0,e:0},
+{i:"Q6-8",t:"Existe local para armazenagem de itens de consumo comum? O local está identificado e organizado?",g:"Local separado + ponto de reabastecimento (KANBAN).",m:1,e:1},
+{i:"Q6-9",t:"Existe carrinhos de mão usados para transportar peças pesadas na oficina?",g:"Restrições de peso + local designado.",m:0,e:0},
+{i:"Q6-10",t:"Todos os manuais estão armazenados em um local conveniente para a oficina? E eles são mantidos de forma organizada?",g:"Modelos similares agrupados com indicação.",m:0,e:1},
+{i:"Q8-1",t:"O dealer / filial faz inspeção nos equipamentos no momento do recebimento em sua unidade?",g:"Inspeções padronizadas e documentadas.",m:0,e:0},
+{i:"Q8-2",t:"A área de armazenagem de máquinas novas está bem protegida de poeira, chuva e é mantida limpa?",g:"Área protegida, limpa e designada.",m:0,e:1},
+{i:"Q8-3",t:"O dealer / filial realiza inspeção periódicas nas empilhadeiras em sua área de estoque?",g:"Inspeção mensal + procedimento + check list.",m:0,e:0},
+{i:"Q8-4",t:"O dealer / filial realiza a inspeção pré-entrega de maneira padronizada?",g:"Check list PDI com assinatura do líder.",m:0,e:1},
+{i:"Q9-3-1",t:"O dealer / filial tem programação para os técnicos de campo e internos? E estão claramente visíveis?",g:"Plano de visita e cronograma de oficina.",m:0,e:1},
+{i:"Q9-7",t:"Uma inspeção de controle de qualidade é feita após as reformas de máquinas serem concluídas na oficina?",g:"Check list de QC.",m:0,e:0},
+{i:"Q9-9-2",t:"O supervisor / gestor utiliza um relatório diário tanto dos técnicos de campo quanto dos da oficina, a fim de verificar a situação do equipamento após a manutenção?",g:"Checar relatório diário.",m:0,e:0}
+]},
+Alm:{n:"Almoxarifado",q:[
+{i:"Q6-4",t:"Tem iluminação adequada na oficina de manutenção e no almoxarifado?",g:"Iluminação + luzes portáteis.",m:0,e:1},
+{i:"Q9-11-3",t:"Todas as reivindicações de garantia são enviadas à matriz em tempo hábil?",g:"Informações básicas + motivo da garantia.",m:0,e:0},
+{i:"Q9-11-4",t:"Todas as peças em análise de garantia são armazenadas em local seguro até o julgamento final?",g:"Prateleiras designadas com dados do cliente/peça.",m:0,e:0},
+{i:"Q13-1-1",t:"O departamento de peças possui todas as ferramentas necessárias para realização das suas atividades?",g:"Catálogo, lista de preços e boletins atualizados.",m:0,e:0},
+{i:"Q13-1-2",t:"O dealer/ filial possui um procedimento padrão documentado para pedido de peças?",g:"Cronograma, cálculo, frequência e verificação de anormais.",m:0,e:0},
+{i:"Q13-1-3",t:"O dealer / filial atualiza seu sistema de peças imediatamente sempre que há informações de part number substitutos?",g:"Repassar substitutos imediatamente.",m:0,e:0},
+{i:"Q13-1-4",t:"O dealer/ filial trata separadamente seus pedidos, de acordo com a urgência?",g:"Reposição vs VOR/B.O. Procedimento escrito.",m:0,e:0},
+{i:"Q13-1-5",t:"O dealer/ filial possui um procedimento padrão para follow-up do status da entrega de pedidos atrasados, para atender back order?",g:"Procedimento de follow-up de B/O.",m:0,e:0},
+{i:"Q13-2",t:"O dealer / filial registra o lead time atual para os pedidos de peças?",g:"Registrar e refletir no cálculo. KAIZEN se variável.",m:0,e:0},
+{i:"Q13-3-1",t:"O dealer / filial coloca regularmente os pedidos de peças de reposição na matriz?",g:"Dia fixo de cada semana.",m:0,e:0},
+{i:"Q13-3-2",t:"O dealer / filial calcula os pedidos de peças de reposição de estoque baseados em critérios ou parâmetros apropriados?",g:"MIP com MAD, O/C, L/T, S/S. Atualizado mensalmente.",m:0,e:0},
+{i:"Q13-3-4",t:"O dealer / filial revisa periodicamente o histórico de demanda de itens para determinar qual item deve ser estocado?",g:"Revisão + phase-in/out.",m:0,e:0},
+{i:"Q13-3-5",t:"O dealer / filial possui uma definição sobre peças non-moving e controla o valor do estoque dessas peças?",g:"Definição + política de depreciação/descarte.",m:0,e:0},
+{i:"Q13-3-6",t:"O dealer / filial possui uma política de scrap? As peças estão sendo escarpeadas uma vez por ano conforme a política?",g:"Política escrita + sucateamento ≥1x/ano.",m:0,e:0},
+{i:"Q13-3-7",t:"O dealer / filial conhece e gerencia os números do seu service rate e stock month?",g:"Targets + atividades KAIZEN conforme matriz.",m:1,e:1},
+{i:"Q14-1",t:"O dealer / filial descarrega as peças no local mais próximo possível do almoxarifado?",g:"Local de descarregamento eficiente.",m:0,e:0},
+{i:"Q14-2",t:"O dealer / filial possui uma divisão clara das áreas de recebimento e expedição?",g:"Separação com indicação. Se limitado, indicar operação do momento.",m:0,e:1},
+{i:"Q14-3",t:"O dealer / filial realiza corretamente as operações de recebimento das peças?",g:"Procedimento + checagem no mesmo dia com packing slip.",m:0,e:0},
+{i:"Q14-4",t:"O dealer / filial atualiza o sistema de gestão do estoque imediatamente após realizada as operações de armazenamento das peças?",g:"Atualizar imediatamente. Conferir quantidades.",m:0,e:0},
+{i:"Q14-5",t:"O dealer / filial realiza operações de pré-picking de peças para os técnicos?",g:"Pré-picking alinhado ao horário e OS.",m:0,e:1},
+{i:"Q14-6",t:"O dealer / filial possui prateleiras / área específicas para peças de pedidos especiais?",g:"Área B/O, VOR, Campanha. Follow-up diário.",m:0,e:1},
+{i:"Q14-7",t:"O dealer / filial utiliza cestas ou carrinhos para separar / armazenar as peças?",g:"Cestas/carrinhos com local designado.",m:0,e:1},
+{i:"Q14-8",t:"O dealer / filial armazena as peças da seguinte forma: um part number uma locação?",g:"Uma locação por part number.",m:1,e:1},
+{i:"Q14-9",t:"O dealer / filial armazena peças pesadas nas prateleiras médias ou inferiores?",g:"Pesadas no meio/inferiores.",m:0,e:1},
+{i:"Q14-11",t:"O dealer / filial armazena as peças de alto giro próximas da área de recebimento ou de expedição?",g:"Alto giro próximo. Revisão periódica.",m:0,e:0},
+{i:"Q14-12",t:"O dealer/ filial armazena as peças do mesmo tipo e formato próximas uma das outras? Elas estão visivelmente separadas?",g:"Mesmo tipo agrupado + separação visual.",m:0,e:1},
+{i:"Q14-13",t:"O dealer / filial utiliza o método de armazenamento vertical?",g:"Armazenamento vertical conforme formato.",m:0,e:1},
+{i:"Q14-14",t:"O dealer / filial consegue saber de forma visual movimentações irregulares incluindo o overstock?",g:"Indicação visual + motivo + contramedida.",m:0,e:1},
+{i:"Q14-15",t:"O dealer / filial utiliza um método FIFO (First-in / First-out) na armazenagem das peças?",g:"FIFO com indicações visuais.",m:0,e:1},
+{i:"Q14-16",t:"O dealer / filial faz revisões regularmente das locações das peças?",g:"Revisão considerando demanda e 7 técnicas.",m:0,e:0},
+{i:"Q14-17",t:"O dealer / filial não armazena peças no corredor, diretamente no chão e não estão saindo das prateleiras?",g:"Proibido corredor/chão. Peças dentro das prateleiras.",m:1,e:1},
+{i:"Q15-1",t:"O dealer/ filial informa devidamente o departamento de serviços, o horário de corte para os pedidos de peças? A informação está visível em um local onde todos possam ver?",g:"Horário de corte visível e atualizado.",m:0,e:1},
+{i:"Q15-2",t:"O dealer / filial possui um balcão de peças separado e exclusivo para os técnicos?",g:"Balcão exclusivo para técnicos.",m:0,e:1},
+{i:"Q15-3",t:"O departamento de peças tem uma comunicação regular com o departamento de serviços?",g:"Reuniões mensais/semanais.",m:0,e:0},
+{i:"Q15-4",t:"O departamento de serviços notifica os clientes e reprograma os compromissos quando o ETA (Tempo Estimado de Chegada) muda?",g:"Peças informa Serviços imediatamente. Procedimento documentado.",m:0,e:0}
+]}
+};
+const ans={};
+
+;
+let currentArea = null;
+const ans = {};
+document.getElementById("auditDate").valueAsDate = new Date();
+
+function initAreaCards() {
+  const grid = document.getElementById("areaGrid");
+  grid.innerHTML = "";
+  Object.keys(A).forEach(k => {
+    const a = A[k];
+    const card = document.createElement("div");
+    card.className = "area-card";
+    card.innerHTML = `<div class="icon">${ICONS[k]||"📋"}</div><h3>${a.n}</h3><p>${a.q.length} itens</p>`;
+    card.onclick = () => startArea(k);
+    grid.appendChild(card);
+  });
+}
+
+function startArea(key) {
+  const auditor = document.getElementById("auditorName").value.trim();
+  const dealer = document.getElementById("dealerName").value.trim();
+  if (!auditor || !dealer) {
+    alert("Preencha o Nome do Auditor e o Dealer / Filial antes de iniciar.");
+    return;
+  }
+  currentArea = key;
+  document.getElementById("areaTitle").textContent = A[key].n;
+  renderQuestions(key);
+  updateAreaScore();
+  showView("checklist");
+}
+
+function renderQuestions(key) {
+  const cont = document.getElementById("questionsContainer");
+  cont.innerHTML = "";
+  A[key].q.forEach(q => {
+    const a = ans[key + "_" + q.i] || {};
+    const c = document.createElement("div");
+    c.className = "qc" + (a.s === "ok" ? " ok" : a.s === "nok" ? " nok" : "");
+    c.id = "c-" + key + "-" + q.i;
+    let bd = "";
+    if (q.m) bd += '<span class="bd bm">Mandatório</span>';
+    if (q.e) bd += '<span class="bd be">Evidenciável</span>';
+    c.innerHTML = `<div class="qh"><span class="qcde">${q.i}</span><span class="qtx">${q.t}</span><div class="bdg">${bd}</div></div>${q.g ? `<div class="gd">${q.g}</div>` : ""}<div class="ar"><div class="rg"><label class="ol"><input type="radio" name="${key}_${q.i}" value="ok" ${a.s==="ok"?"checked":""} onchange="setA('${key}','${q.i}','ok')"> Conforme</label><label class="nl"><input type="radio" name="${key}_${q.i}" value="nok" ${a.s==="nok"?"checked":""} onchange="setA('${key}','${q.i}','nok')"> Não Conforme</label></div><div class="eb"><input type="file" accept="image/*" id="f-${key}-${q.i}" onchange="hF('${key}','${q.i}',this)"><img class="pi${a.e?" show":""}" id="pi-${key}-${q.i}" ${a.e?`src="${a.e}"`:""}></div></div>`;
+    cont.appendChild(c);
+  });
+}
+
+function setA(k, i, s) {
+  const key = k + "_" + i;
+  if (!ans[key]) ans[key] = { s: null, e: null, n: null };
+  ans[key].s = s;
+  const c = document.getElementById("c-" + k + "-" + i);
+  c.classList.remove("ok", "nok");
+  if (s === "ok") c.classList.add("ok");
+  if (s === "nok") c.classList.add("nok");
+  updateAreaScore();
+}
+
+function hF(k, i, inp) {
+  const key = k + "_" + i;
+  if (!ans[key]) ans[key] = { s: null, e: null, n: null };
+  const f = inp.files[0];
+  if (!f) {
+    ans[key].e = null; ans[key].n = null;
+    document.getElementById("pi-" + k + "-" + i).classList.remove("show");
+    return;
+  }
+  const r = new FileReader();
+  r.onload = e => {
+    ans[key].e = e.target.result;
+    ans[key].n = f.name;
+    const img = document.getElementById("pi-" + k + "-" + i);
+    img.src = e.target.result;
+    img.classList.add("show");
+  };
+  r.readAsDataURL(f);
+}
+
+function calc(k) {
+  const qs = A[k].q;
+  let an = 0, ok = 0;
+  qs.forEach(q => {
+    const a = ans[k + "_" + q.i];
+    if (a && a.s) { an++; if (a.s === "ok") ok++; }
+  });
+  if (an === 0) return { p: null, ok: 0, t: qs.length, an: 0 };
+  return { p: Math.round(ok / an * 100), ok, t: qs.length, an };
+}
+
+function updateAreaScore() {
+  if (!currentArea) return;
+  const s = calc(currentArea);
+  document.getElementById("areaScore").textContent = s.p === null ? "—" : s.p + "%";
+}
+
+function showView(v) {
+  document.getElementById("view-select").classList.toggle("on", v === "select");
+  document.getElementById("view-checklist").classList.toggle("on", v === "checklist");
+  document.getElementById("view-history").classList.toggle("on", v === "history");
+  document.getElementById("btnNova").classList.toggle("on", v === "select" || v === "checklist");
+  document.getElementById("btnHist").classList.toggle("on", v === "history");
+  if (v === "history") renderHistory();
+}
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem("asec_history") || "[]"); }
+  catch { return []; }
+}
+function saveHistory(list) {
+  localStorage.setItem("asec_history", JSON.stringify(list));
+}
+
+function saveToHistory() {
+  if (!currentArea) return;
+  const s = calc(currentArea);
+  if (s.an === 0) {
+    alert("Responda pelo menos um item antes de salvar.");
+    return;
+  }
+  const entry = {
+    id: Date.now(),
+    area: currentArea,
+    areaName: A[currentArea].n,
+    auditor: document.getElementById("auditorName").value.trim(),
+    dealer: document.getElementById("dealerName").value.trim(),
+    date: document.getElementById("auditDate").value,
+    notes: document.getElementById("generalNotes").value.trim(),
+    score: s.p,
+    answered: s.an,
+    total: s.t,
+    conforme: s.ok,
+    answers: JSON.parse(JSON.stringify(
+      Object.fromEntries(Object.entries(ans).filter(([k]) => k.startsWith(currentArea + "_")))
+    ))
+  };
+  const list = getHistory();
+  list.unshift(entry);
+  if (list.length > 50) list.pop();
+  saveHistory(list);
+  alert("Relatório salvo no histórico com sucesso!");
+}
+
+function renderHistory() {
+  const list = getHistory();
+  const el = document.getElementById("histList");
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty">Nenhum relatório salvo ainda.<br>Realize uma auditoria e clique em “Salvar no Histórico”.</div>';
+    return;
+  }
+  el.innerHTML = list.map(h => `
+    <div class="hist-card">
+      <div class="info">
+        <strong>${h.areaName}</strong>
+        <span>${h.dealer} • ${h.date || "—"} • Auditor: ${h.auditor}</span>
+      </div>
+      <div class="score">${h.score !== null && h.score !== undefined ? h.score + "%" : "—"}</div>
+      <div class="actions">
+        <button class="btn-view" onclick="loadFromHistory(${h.id})">Abrir</button>
+        <button class="btn-del" onclick="deleteHistory(${h.id})">Excluir</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function loadFromHistory(id) {
+  const list = getHistory();
+  const h = list.find(x => x.id === id);
+  if (!h) return;
+  document.getElementById("auditorName").value = h.auditor || "";
+  document.getElementById("dealerName").value = h.dealer || "";
+  document.getElementById("auditDate").value = h.date || "";
+  document.getElementById("generalNotes").value = h.notes || "";
+  Object.keys(ans).forEach(k => { if (k.startsWith(h.area + "_")) delete ans[k]; });
+  if (h.answers) Object.assign(ans, h.answers);
+  currentArea = h.area;
+  document.getElementById("areaTitle").textContent = h.areaName;
+  renderQuestions(h.area);
+  updateAreaScore();
+  showView("checklist");
+}
+
+function deleteHistory(id) {
+  if (!confirm("Excluir este relatório do histórico?")) return;
+  let list = getHistory().filter(x => x.id !== id);
+  saveHistory(list);
+  renderHistory();
+}
+
+function resetCurrent() {
+  if (!currentArea || !confirm("Limpar todas as respostas desta área?")) return;
+  Object.keys(ans).forEach(k => { if (k.startsWith(currentArea + "_")) delete ans[k]; });
+  renderQuestions(currentArea);
+  updateAreaScore();
+}
+
+async function generatePDF() {
+  if (!currentArea) return;
+  const auditor = document.getElementById("auditorName").value.trim() || "Não informado";
+  const dealer = document.getElementById("dealerName").value.trim() || "Não informado";
+  const date = document.getElementById("auditDate").value || new Date().toISOString().slice(0,10);
+  const notes = document.getElementById("generalNotes").value.trim();
+  const s = calc(currentArea);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pw = doc.internal.pageSize.getWidth(), m = 14;
+  let y = 18;
+
+  doc.setFillColor(0, 57, 56);
+  doc.rect(0, 0, pw, 28, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(15); doc.setFont("helvetica", "bold");
+  doc.text("Relatório de Auditoria Interna ASEC", m, 12);
+  doc.setFontSize(10); doc.setFont("helvetica", "normal");
+  doc.text("Carmak • " + A[currentArea].n, m, 20);
+
+  y = 36;
+  doc.setTextColor(33, 37, 41); doc.setFontSize(10);
+  doc.text("Auditor: " + auditor, m, y);
+  doc.text("Dealer / Filial: " + dealer, m + 95, y); y += 6;
+  doc.text("Data: " + date, m, y);
+  doc.text("Assertividade: " + (s.p === null ? "—" : s.p + "%"), m + 95, y); y += 8;
+  if (notes) { doc.text("Obs: " + notes, m, y); y += 8; }
+
+  const body = [];
+  A[currentArea].q.forEach(q => {
+    const a = ans[currentArea + "_" + q.i] || {};
+    let st = "Não respondido";
+    if (a.s === "ok") st = "Conforme";
+    if (a.s === "nok") st = "Não Conforme";
+    const fl = [];
+    if (q.m) fl.push("M");
+    if (q.e) fl.push("E");
+    body.push([q.i + (fl.length ? " [" + fl.join("+") + "]" : ""), q.t.substring(0, 85) + (q.t.length > 85 ? "…" : ""), st, a.n ? "Sim" : "—"]);
+  });
+
+  doc.autoTable({
+    startY: y,
+    head: [["Código", "Item", "Status", "Evid."]],
+    body: body,
+    theme: "striped",
+    headStyles: { fillColor: [0, 57, 56], textColor: 255, fontSize: 8 },
+    styles: { fontSize: 7.5, cellPadding: 1.8, overflow: "linebreak" },
+    columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: 105 }, 2: { cellWidth: 28 }, 3: { cellWidth: 18 } },
+    margin: { left: m, right: m },
+    didParseCell: function(d) {
+      if (d.section === "body" && d.column.index === 2) {
+        if (d.cell.raw === "Conforme") { d.cell.styles.textColor = [25, 135, 84]; d.cell.styles.fontStyle = "bold"; }
+        else if (d.cell.raw === "Não Conforme") { d.cell.styles.textColor = [220, 53, 69]; d.cell.styles.fontStyle = "bold"; }
+      }
+    }
+  });
+
+  y = doc.lastAutoTable.finalY + 8;
+  doc.setFontSize(8); doc.setTextColor(108, 117, 125);
+  doc.text("Legenda: [M] = Mandatório  |  [E] = Evidenciável", m, y); y += 5;
+  doc.text("Gerado em " + new Date().toLocaleString("pt-BR") + " • Carmak", m, y);
+
+  const evs = [];
+  A[currentArea].q.forEach(q => {
+    const a = ans[currentArea + "_" + q.i];
+    if (a && a.e) evs.push({ i: q.i, t: q.t, s: a.s, img: a.e, n: a.n });
+  });
+  if (evs.length) {
+    doc.addPage();
+    y = 18;
+    doc.setFillColor(0, 57, 56); doc.rect(0, 0, pw, 16, "F");
+    doc.setTextColor(255, 255, 255); doc.setFontSize(13); doc.setFont("helvetica", "bold");
+    doc.text("Evidências Fotográficas", m, 11);
+    doc.setTextColor(33, 37, 41); y = 26;
+    for (const it of evs) {
+      if (y > 240) { doc.addPage(); y = 18; }
+      doc.setFontSize(9); doc.setFont("helvetica", "bold");
+      doc.text(it.i, m, y); y += 5;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+      const ls = doc.splitTextToSize(it.t, pw - m * 2);
+      doc.text(ls, m, y); y += ls.length * 4 + 2;
+      doc.setTextColor(it.s === "ok" ? 25 : 220, it.s === "ok" ? 135 : 53, it.s === "ok" ? 84 : 69);
+      doc.text("Status: " + (it.s === "ok" ? "Conforme" : "Não Conforme"), m, y);
+      doc.setTextColor(33, 37, 41); y += 5;
+      try {
+        const ip = doc.getImageProperties(it.img);
+        let w = ip.width, h = ip.height;
+        const r = Math.min(80 / w, 50 / h);
+        w *= r; h *= r;
+        doc.addImage(it.img, "JPEG", m, y, w, h);
+        y += h + 10;
+      } catch (e) {
+        doc.setFontSize(8); doc.setTextColor(108, 117, 125);
+        doc.text("[Imagem: " + it.n + "]", m, y); y += 8;
+        doc.setTextColor(33, 37, 41);
+      }
+    }
+  }
+
+  doc.save("Relatorio_ASEC_" + A[currentArea].n.replace(/\s+/g, "_") + "_" + dealer.replace(/\s+/g, "_") + "_" + date + ".pdf");
+}
+
+initAreaCards();
+</script>
+</body>
+</html>
