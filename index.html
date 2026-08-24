@@ -104,14 +104,11 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 </header>
 
 <div class="container">
-<!-- SELEÇÃO DE ÁREA -->
 <div id="view-select" class="area-select on">
 <div class="meta">
 <div>
 <label>Nome do Auditor *</label>
-<select id="auditorName">
-<option value="Luan Mota" selected>Luan Mota</option>
-</select>
+<select id="auditorName"><option value="Luan Mota" selected>Luan Mota</option></select>
 </div>
 <div>
 <label>Dealer / Filial *</label>
@@ -129,7 +126,6 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 <div class="area-grid" id="areaGrid"></div>
 </div>
 
-<!-- CHECKLIST -->
 <div id="view-checklist" class="checklist-view">
 <div class="back-bar">
 <button onclick="showView('select')">← Voltar</button>
@@ -144,7 +140,6 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 </div>
 </div>
 
-<!-- HISTÓRICO -->
 <div id="view-history" class="history-view">
 <h2 style="color:var(--p);margin-bottom:1rem">Histórico de Relatórios</h2>
 <div class="hist-list" id="histList"></div>
@@ -394,7 +389,6 @@ function setA(k, i, s) {
   c.classList.remove("ok", "nok");
   if (s === "ok") c.classList.add("ok");
   if (s === "nok") c.classList.add("nok");
-
   const justWrap = document.getElementById("just-wrap-" + k + "-" + i);
   if (justWrap) {
     if (s === "nok") justWrap.classList.add("show");
@@ -433,12 +427,11 @@ async function hF(k, i, inp) {
   const key = k + "_" + i;
   if (!ans[key]) ans[key] = { s: null, imgs: [], just: "" };
   if (!ans[key].imgs) ans[key].imgs = [];
-  const files = Array.from(inp.files || []);
-  for (const f of files) {
+  for (const f of Array.from(inp.files || [])) {
     try {
       const data = await compressImage(f);
       ans[key].imgs.push({ data, name: f.name });
-    } catch (e) { console.error(e); }
+    } catch (e) {}
   }
   inp.value = "";
   renderGallery(k, i);
@@ -503,17 +496,11 @@ function showView(v) {
 }
 
 function getHistory() {
-  try { return JSON.parse(localStorage.getItem("asec_history") || "[]"); }
-  catch { return []; }
+  try { return JSON.parse(localStorage.getItem("asec_history") || "[]"); } catch { return []; }
 }
 function saveHistory(list) {
-  try {
-    localStorage.setItem("asec_history", JSON.stringify(list));
-    return true;
-  } catch (e) {
-    alert("Armazenamento local cheio. Gere o PDF e exclua relatórios antigos.");
-    return false;
-  }
+  try { localStorage.setItem("asec_history", JSON.stringify(list)); return true; }
+  catch (e) { alert("Armazenamento local cheio. Gere o PDF e exclua relatórios antigos."); return false; }
 }
 
 function validateJustifications() {
@@ -556,11 +543,8 @@ function saveToHistory() {
   const list = getHistory();
   if (editingHistoryId) {
     const idx = list.findIndex(x => x.id === editingHistoryId);
-    if (idx >= 0) list[idx] = entry;
-    else list.unshift(entry);
-  } else {
-    list.unshift(entry);
-  }
+    if (idx >= 0) list[idx] = entry; else list.unshift(entry);
+  } else list.unshift(entry);
   if (list.length > 80) list.pop();
   if (saveHistory(list)) {
     alert(editingHistoryId ? "Relatório atualizado!" : "Relatório salvo no histórico!");
@@ -622,7 +606,7 @@ function resetCurrent() {
   updateAreaScore();
 }
 
-/* ========== PDF ========== */
+/* ===================== PDF PROFISSIONAL ===================== */
 async function getLogoDataURL() {
   return new Promise((resolve) => {
     const img = document.querySelector("header img.logo");
@@ -651,6 +635,19 @@ async function getLogoDataURL() {
   });
 }
 
+function addFooter(doc, pageNum, totalPages) {
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  doc.setDrawColor(200, 162, 77);
+  doc.setLineWidth(0.4);
+  doc.line(14, ph - 12, pw - 14, ph - 12);
+  doc.setFontSize(7);
+  doc.setTextColor(120, 120, 130);
+  doc.setFont("helvetica", "normal");
+  doc.text("Carmak • Documento controlado • Uso interno", 14, ph - 7);
+  doc.text(`Página ${pageNum} de ${totalPages}`, pw - 14, ph - 7, { align: "right" });
+}
+
 async function generatePDF() {
   if (!currentArea) return;
   if (!validateJustifications()) return;
@@ -660,84 +657,106 @@ async function generatePDF() {
   const date = document.getElementById("auditDate").value || new Date().toISOString().slice(0,10);
   const notes = document.getElementById("generalNotes").value.trim();
   const s = calc(currentArea);
+  const nokCount = s.an - s.ok;
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pw = doc.internal.pageSize.getWidth();
   const m = 14;
   let y = 0;
 
-  // Cabeçalho
+  // ===== CABEÇALHO =====
   doc.setFillColor(11, 31, 63);
-  doc.rect(0, 0, pw, 28, "F");
+  doc.rect(0, 0, pw, 26, "F");
   doc.setFillColor(200, 162, 77);
-  doc.rect(0, 28, pw, 1.8, "F");
+  doc.rect(0, 26, pw, 1.6, "F");
 
   const logoData = await getLogoDataURL();
   if (logoData) {
-    try { doc.addImage(logoData, "PNG", m, 8, 32, 11); } catch(e){}
+    try { doc.addImage(logoData, "PNG", m, 7, 30, 10.5); } catch(e){}
   }
 
-  const textX = logoData ? m + 38 : m;
+  const textX = logoData ? m + 36 : m;
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("Relatório de Auditoria ASEC", textX, 12);
-  doc.setFontSize(8.5);
+  doc.setFontSize(13);
+  doc.text("Relatório de Auditoria ASEC", textX, 11);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(243, 228, 187);
-  doc.text("Carmak • Toyota Material Handling  |  " + A[currentArea].n, textX, 19);
+  doc.text("Carmak • Toyota Material Handling  |  " + A[currentArea].n, textX, 17.5);
 
-  y = 36;
+  y = 34;
 
-  // Bloco de identificação
-  doc.setFillColor(246, 248, 251);
-  doc.roundedRect(m, y, pw - m * 2, 26, 2, 2, "F");
+  // ===== BLOCO DE IDENTIFICAÇÃO =====
+  doc.setFillColor(248, 249, 252);
+  doc.setDrawColor(220, 224, 232);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(m, y, pw - m * 2, 22, 1.5, 1.5, "FD");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(100, 110, 125);
+  doc.text("DEALER / FILIAL", m + 4, y + 6);
+  doc.text("DATA", m + 78, y + 6);
+  doc.text("AUDITOR", m + 115, y + 6);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
   doc.setTextColor(11, 31, 63);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.text("DEALER / FILIAL", m + 4, y + 7);
-  doc.text("DATA", m + 85, y + 7);
-  doc.text("AUDITOR", m + 120, y + 7);
-  doc.setFontSize(10);
-  doc.text(dealer, m + 4, y + 13);
-  doc.text(date, m + 85, y + 13);
-  doc.text(auditor, m + 120, y + 13);
-  doc.setFontSize(7.5);
-  doc.setTextColor(96, 108, 133);
-  doc.text("ASSERTIVIDADE", m + 4, y + 21);
-  doc.setFontSize(12);
-  doc.setTextColor(s.p >= 80 ? 31 : s.p >= 50 ? 163 : 164, s.p >= 80 ? 122 : s.p >= 50 ? 129 : 52, s.p >= 80 ? 92 : s.p >= 50 ? 47 : 74);
-  doc.setFont("helvetica", "bold");
-  doc.text((s.p === null ? "—" : s.p + "%"), m + 38, y + 21);
-  doc.setFontSize(8);
-  doc.setTextColor(96, 108, 133);
-  doc.setFont("helvetica", "normal");
-  doc.text(`(${s.ok} conformes de ${s.an} respondidos • ${s.t} itens)`, m + 55, y + 21);
+  doc.text(dealer, m + 4, y + 11.5);
+  doc.text(date, m + 78, y + 11.5);
+  doc.text(auditor, m + 115, y + 11.5);
 
-  y += 32;
+  // Assertividade
+  doc.setFontSize(7);
+  doc.setTextColor(100, 110, 125);
+  doc.setFont("helvetica", "normal");
+  doc.text("ASSERTIVIDADE", m + 4, y + 18);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  const scoreColor = s.p >= 80 ? [31, 122, 92] : s.p >= 50 ? [163, 129, 47] : [164, 52, 74];
+  doc.setTextColor(...scoreColor);
+  doc.text((s.p === null ? "—" : s.p + "%"), m + 32, y + 18);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 110, 125);
+  doc.text(`${s.ok} conformes  •  ${nokCount} não conformes  •  ${s.an}/${s.t} respondidos`, m + 50, y + 18);
+
+  y += 28;
+
   if (notes) {
     doc.setFontSize(8);
-    doc.text("Obs: " + notes, m, y);
+    doc.setTextColor(80, 90, 105);
+    doc.text("Observações: " + notes, m, y);
     y += 6;
   }
 
-  // Tabela
+  // ===== TABELA PRINCIPAL =====
   const body = [];
   A[currentArea].q.forEach(q => {
     const a = ans[currentArea + "_" + q.i] || {};
     let st = "Não respondido";
     if (a.s === "ok") st = "Conforme";
     if (a.s === "nok") st = "Não Conforme";
+
     let flags = [];
     if (q.m) flags.push("MANDATÓRIO");
     if (q.e) flags.push("EVIDENCIÁVEL");
+
     const nImgs = (a.imgs && a.imgs.length) || 0;
+    let itemText = q.t;
+    if (a.s === "nok" && a.just) {
+      itemText += "\n\nMotivo: " + a.just;
+    }
+
     body.push([
       q.i,
-      q.t + (a.s === "nok" && a.just ? "\n\nMotivo: " + a.just : ""),
-      flags.join("  "),
+      itemText,
+      flags.join("\n"),
       st,
-      nImgs ? nImgs + " foto" + (nImgs > 1 ? "s" : "") : "—"
+      nImgs ? nImgs + (nImgs > 1 ? " fotos" : " foto") : "—"
     ]);
   });
 
@@ -746,120 +765,193 @@ async function generatePDF() {
     head: [["Código", "Item Avaliado", "Classificação", "Status", "Evid."]],
     body,
     theme: "plain",
-    headStyles: { fillColor: [11, 31, 63], textColor: [243, 228, 187], fontSize: 8, fontStyle: "bold", cellPadding: 3 },
-    styles: { fontSize: 7.5, cellPadding: 2.4, overflow: "linebreak", lineColor: [221, 225, 234], lineWidth: 0.2 },
+    headStyles: {
+      fillColor: [11, 31, 63],
+      textColor: [243, 228, 187],
+      fontSize: 7.5,
+      fontStyle: "bold",
+      cellPadding: { top: 2.8, bottom: 2.8, left: 2.5, right: 2.5 }
+    },
+    styles: {
+      fontSize: 7.2,
+      cellPadding: { top: 2.4, bottom: 2.4, left: 2.5, right: 2.5 },
+      overflow: "linebreak",
+      lineColor: [220, 224, 232],
+      lineWidth: 0.25,
+      textColor: [30, 40, 55]
+    },
     columnStyles: {
-      0: { cellWidth: 16, fontStyle: "bold", textColor: [11, 31, 63] },
-      1: { cellWidth: 95 },
-      2: { cellWidth: 30, fontSize: 6.5 },
+      0: { cellWidth: 15, fontStyle: "bold", textColor: [11, 31, 63] },
+      1: { cellWidth: 98 },
+      2: { cellWidth: 28, fontSize: 6.2, textColor: [140, 110, 40] },
       3: { cellWidth: 24, fontStyle: "bold", halign: "center" },
-      4: { cellWidth: 15, halign: "center" }
+      4: { cellWidth: 15, halign: "center", fontSize: 7 }
     },
     margin: { left: m, right: m },
     didParseCell(data) {
       if (data.section === "body") {
-        if (data.row.index % 2 === 0) data.cell.styles.fillColor = [250, 251, 253];
+        if (data.row.index % 2 === 0) {
+          data.cell.styles.fillColor = [250, 251, 253];
+        }
         if (data.column.index === 3) {
           if (data.cell.raw === "Conforme") {
-            data.cell.styles.textColor = [25, 135, 84];
-            data.cell.styles.fillColor = [220, 245, 230];
+            data.cell.styles.textColor = [25, 120, 75];
+            data.cell.styles.fillColor = [225, 245, 232];
           } else if (data.cell.raw === "Não Conforme") {
-            data.cell.styles.textColor = [180, 40, 55];
-            data.cell.styles.fillColor = [255, 230, 233];
+            data.cell.styles.textColor = [170, 40, 55];
+            data.cell.styles.fillColor = [255, 232, 235];
+          } else {
+            data.cell.styles.textColor = [140, 140, 150];
           }
-        }
-        if (data.column.index === 2 && data.cell.raw) {
-          data.cell.styles.textColor = [163, 129, 47];
-          data.cell.styles.fontStyle = "bold";
         }
       }
     }
   });
 
-  y = doc.lastAutoTable.finalY + 10;
+  y = doc.lastAutoTable.finalY + 12;
 
-  // Assinatura
-  if (y > 240) { doc.addPage(); y = 20; }
+  // ===== BLOCO DE ASSINATURA =====
+  if (y > 230) {
+    doc.addPage();
+    y = 20;
+  }
+
   doc.setDrawColor(200, 162, 77);
-  doc.setLineWidth(0.4);
+  doc.setLineWidth(0.5);
   doc.line(m, y, pw - m, y);
   y += 8;
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(11, 31, 63);
-  doc.text("Assinatura do Auditor", m, y);
-  y += 12;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.text(auditor, m, y);
-  doc.text("Analista de Qualidade", m, y + 5);
-  doc.text("Data: " + date, m, y + 10);
-  doc.setDrawColor(100, 100, 100);
-  doc.line(m + 80, y + 8, m + 160, y + 8);
-  doc.setFontSize(7.5);
-  doc.setTextColor(120, 120, 120);
-  doc.text("Assinatura", m + 110, y + 12);
+  doc.text("Validação do Auditor", m, y);
+  y += 10;
 
-  // Evidências
+  // Caixa de assinatura
+  doc.setDrawColor(200, 205, 215);
+  doc.setLineWidth(0.3);
+  doc.setFillColor(252, 252, 254);
+  doc.roundedRect(m, y, 85, 28, 1.5, 1.5, "FD");
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(80, 90, 105);
+  doc.text("Auditor responsável", m + 4, y + 6);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(11, 31, 63);
+  doc.text(auditor, m + 4, y + 12);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(100, 110, 125);
+  doc.text("Analista de Qualidade", m + 4, y + 17.5);
+  doc.text("Data: " + date, m + 4, y + 23);
+
+  // Linha de assinatura
+  doc.setDrawColor(150, 155, 165);
+  doc.setLineWidth(0.4);
+  doc.line(m + 100, y + 20, m + 170, y + 20);
+  doc.setFontSize(7.5);
+  doc.setTextColor(140, 145, 155);
+  doc.text("Assinatura", m + 128, y + 25);
+
+  // ===== PÁGINAS DE EVIDÊNCIAS =====
   const evs = [];
   A[currentArea].q.forEach(q => {
     const a = ans[currentArea + "_" + q.i];
-    if (a && a.imgs && a.imgs.length) evs.push({ i: q.i, t: q.t, s: a.s, just: a.just, imgs: a.imgs });
+    if (a && a.imgs && a.imgs.length) {
+      evs.push({ i: q.i, t: q.t, s: a.s, just: a.just, imgs: a.imgs });
+    }
   });
 
   if (evs.length) {
     doc.addPage();
+
+    // Header da página de evidências
     doc.setFillColor(11, 31, 63);
     doc.rect(0, 0, pw, 16, "F");
     doc.setFillColor(200, 162, 77);
-    doc.rect(0, 16, pw, 1.5, "F");
+    doc.rect(0, 16, pw, 1.4, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("Evidências Fotográficas", m, 11);
-    y = 26;
-    const imgW = 55, imgH = 40, gap = 6;
+    doc.setFontSize(11);
+    doc.text("Evidências Fotográficas", m, 10.5);
+
+    y = 24;
+    const imgW = 58, imgH = 42, gap = 5;
 
     for (const it of evs) {
-      if (y > 250) { doc.addPage(); y = 18; }
+      if (y > 245) {
+        doc.addPage();
+        doc.setFillColor(11, 31, 63);
+        doc.rect(0, 0, pw, 12, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.text("Evidências Fotográficas (continuação)", m, 8);
+        y = 20;
+      }
+
+      // Código + Status
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
       doc.setTextColor(11, 31, 63);
       doc.text(it.i, m, y);
-      const st = it.s === "ok" ? "Conforme" : it.s === "nok" ? "Não Conforme" : "—";
-      doc.setTextColor(it.s === "ok" ? 25 : 180, it.s === "ok" ? 135 : 40, it.s === "ok" ? 84 : 55);
-      doc.text("• " + st, m + 20, y);
+
+      const stTxt = it.s === "ok" ? "Conforme" : it.s === "nok" ? "Não Conforme" : "—";
+      doc.setTextColor(it.s === "ok" ? 25 : 170, it.s === "ok" ? 120 : 40, it.s === "ok" ? 75 : 55);
+      doc.text("• " + stTxt, m + 18, y);
       y += 5;
+
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
-      doc.setTextColor(60, 70, 90);
+      doc.setTextColor(55, 65, 80);
       const ls = doc.splitTextToSize(it.t, pw - m * 2);
       doc.text(ls, m, y);
-      y += ls.length * 3.5 + 2;
+      y += ls.length * 3.4 + 1.5;
+
       if (it.just) {
         doc.setTextColor(164, 52, 74);
+        doc.setFont("helvetica", "bold");
         const jl = doc.splitTextToSize("Motivo: " + it.just, pw - m * 2);
         doc.text(jl, m, y);
-        y += jl.length * 3.5 + 2;
+        y += jl.length * 3.4 + 2;
+        doc.setFont("helvetica", "normal");
       }
+
       let xOff = m, rowMaxH = 0;
       for (const im of it.imgs) {
-        if (xOff + imgW > pw - m) { xOff = m; y += rowMaxH + gap; rowMaxH = 0; }
-        if (y + imgH > 275) { doc.addPage(); y = 18; xOff = m; rowMaxH = 0; }
+        if (xOff + imgW > pw - m) {
+          xOff = m;
+          y += rowMaxH + gap;
+          rowMaxH = 0;
+        }
+        if (y + imgH > 270) {
+          doc.addPage();
+          y = 18;
+          xOff = m;
+          rowMaxH = 0;
+        }
         try {
           const ip = doc.getImageProperties(im.data);
           const r = Math.min(imgW / ip.width, imgH / ip.height);
           const w = ip.width * r, h = ip.height * r;
           doc.addImage(im.data, "JPEG", xOff, y, w, h);
           doc.setDrawColor(200, 162, 77);
-          doc.setLineWidth(0.3);
+          doc.setLineWidth(0.35);
           doc.rect(xOff, y, w, h);
           rowMaxH = Math.max(rowMaxH, h);
         } catch(e) {}
         xOff += imgW + gap;
       }
-      y += rowMaxH + 10;
+      y += rowMaxH + 9;
     }
+  }
+
+  // Adiciona rodapé em todas as páginas
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    addFooter(doc, i, totalPages);
   }
 
   const safeDealer = dealer.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, "_");
