@@ -25,7 +25,8 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 .area-select{display:none}.area-select.on{display:block}
 .meta{background:var(--c);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;box-shadow:0 1px 4px rgba(0,0,0,.06);display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
 .meta label{display:block;font-size:.8rem;color:var(--m);margin-bottom:.3rem}
-.meta input{width:100%;padding:.55rem .75rem;border:1px solid var(--b);border-radius:8px;font-size:.95rem}
+.meta input,.meta select{width:100%;padding:.55rem .75rem;border:1px solid var(--b);border-radius:8px;font-size:.95rem;background:#fff;font-family:inherit}
+.meta select{cursor:pointer}
 .area-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.25rem;margin-top:1rem}
 .area-card{background:var(--c);border:2px solid var(--b);border-radius:18px;padding:2.25rem 1.5rem;text-align:center;cursor:pointer;transition:all .18s;box-shadow:0 2px 8px rgba(0,0,0,.05);min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;-webkit-tap-highlight-color:transparent}
 .area-card:hover,.area-card:active{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 10px 26px rgba(11,31,63,.16)}
@@ -139,8 +140,20 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 <div class="container">
 <div id="view-select" class="area-select on">
 <div class="meta">
-<div><label>Nome do Auditor *</label><input type="text" id="auditorName" placeholder="Seu nome completo"></div>
-<div><label>Dealer / Filial *</label><input type="text" id="dealerName" placeholder="Nome do dealer ou filial"></div>
+<div>
+<label>Nome do Auditor *</label>
+<select id="auditorName">
+<option value="Luan Mota" selected>Luan Mota</option>
+</select>
+</div>
+<div>
+<label>Dealer / Filial *</label>
+<select id="dealerName">
+<option value="">Selecione...</option>
+<option value="Matriz - São Leopoldo RS">Matriz - São Leopoldo RS</option>
+<option value="Filial - Itajaí SC">Filial - Itajaí SC</option>
+</select>
+</div>
 <div><label>Data da Auditoria</label><input type="date" id="auditDate"></div>
 <div><label>Observações Gerais</label><input type="text" id="generalNotes" placeholder="Opcional"></div>
 </div>
@@ -197,7 +210,6 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 <img id="lightboxImg" src="" alt="Evidência">
 </div>
 <script>
-
 // Adapt old structure: A has n and q; add icons
 const ICONS = {RH:"👥",Seg:"🛡️",Pos:"🔧",Ofi:"🏭",Alm:"📦"};
 const A={
@@ -475,7 +487,7 @@ function closeLightbox() {
 }
 
 /* ===================== PLANO DE AÇÃO / NÃO CONFORMIDADES ===================== */
-const EDIT_PIN = "ASEC2026"; // Senha de edição do Plano de Ação — altere aqui se necessário.
+const EDIT_PIN = "ASEC2026";
 let editMode = sessionStorage.getItem("asec_edit_mode") === "1";
 
 function toggleEditMode() {
@@ -1008,7 +1020,7 @@ function loadFromHistory(id) {
   const list = getHistory();
   const h = list.find(x => x.id === id);
   if (!h) return;
-  document.getElementById("auditorName").value = h.auditor || "";
+  document.getElementById("auditorName").value = h.auditor || "Luan Mota";
   document.getElementById("dealerName").value = h.dealer || "";
   document.getElementById("auditDate").value = h.date || "";
   document.getElementById("generalNotes").value = h.notes || "";
@@ -1035,6 +1047,41 @@ function resetCurrent() {
   updateAreaScore();
 }
 
+/* ===================== GERAÇÃO DO PDF MELHORADO ===================== */
+async function getLogoDataURL() {
+  return new Promise((resolve) => {
+    const img = document.querySelector("header img.logo");
+    if (!img || !img.complete || img.naturalWidth === 0) {
+      // Tenta carregar novamente
+      const temp = new Image();
+      temp.crossOrigin = "anonymous";
+      temp.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = temp.naturalWidth;
+          canvas.height = temp.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(temp, 0, 0);
+          resolve(canvas.toDataURL("image/png"));
+        } catch (e) { resolve(null); }
+      };
+      temp.onerror = () => resolve(null);
+      temp.src = "Logotipo_Carmak__Branco_.png";
+      return;
+    }
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    } catch (e) {
+      resolve(null);
+    }
+  });
+}
+
 async function generatePDF() {
   if (!currentArea) return;
   const auditor = document.getElementById("auditorName").value.trim() || "Não informado";
@@ -1044,99 +1091,262 @@ async function generatePDF() {
   const s = calc(currentArea);
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const pw = doc.internal.pageSize.getWidth(), m = 14;
-  let y = 18;
+  const pw = doc.internal.pageSize.getWidth();
+  const m = 14;
+  let y = 0;
 
-  doc.setFillColor(0, 57, 56);
-  doc.rect(0, 0, pw, 28, "F");
+  // ========== CABEÇALHO AZUL + DOURADO ==========
+  doc.setFillColor(11, 31, 63); // --p
+  doc.rect(0, 0, pw, 38, "F");
+  
+  // Faixa dourada
+  doc.setFillColor(200, 162, 77); // --gold
+  doc.rect(0, 38, pw, 2.5, "F");
+
+  // Logo
+  const logoData = await getLogoDataURL();
+  if (logoData) {
+    try {
+      doc.addImage(logoData, "PNG", m, 8, 42, 14);
+    } catch (e) {}
+  }
+
+  // Título principal
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(15); doc.setFont("helvetica", "bold");
-  doc.text("Relatório de Auditoria Interna ASEC", m, 12);
-  doc.setFontSize(10); doc.setFont("helvetica", "normal");
-  doc.text("Carmak • " + A[currentArea].n, m, 20);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Relatório de Auditoria ASEC", logoData ? m + 48 : m, 15);
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(243, 228, 187); // gold-lt
+  doc.text("Carmak • Toyota Material Handling", logoData ? m + 48 : m, 22);
+  doc.text(A[currentArea].n, logoData ? m + 48 : m, 29);
 
-  y = 36;
-  doc.setTextColor(33, 37, 41); doc.setFontSize(10);
-  doc.text("Auditor: " + auditor, m, y);
-  doc.text("Dealer / Filial: " + dealer, m + 95, y); y += 6;
-  doc.text("Data: " + date, m, y);
-  doc.text("Assertividade: " + (s.p === null ? "—" : s.p + "%"), m + 95, y); y += 8;
-  if (notes) { doc.text("Obs: " + notes, m, y); y += 8; }
+  y = 48;
 
+  // ========== BLOCO DE IDENTIFICAÇÃO ==========
+  doc.setFillColor(246, 248, 251);
+  doc.roundedRect(m, y, pw - m * 2, 28, 2, 2, "F");
+  
+  doc.setDrawColor(200, 162, 77);
+  doc.setLineWidth(0.6);
+  doc.line(m, y, m + 3, y);
+  doc.line(m, y, m, y + 3);
+
+  doc.setTextColor(11, 31, 63);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("DEALER / FILIAL", m + 4, y + 7);
+  doc.text("DATA DA AUDITORIA", m + 75, y + 7);
+  doc.text("AUDITOR", m + 130, y + 7);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(11, 31, 63);
+  doc.text(dealer, m + 4, y + 14);
+  doc.text(date, m + 75, y + 14);
+  doc.text(auditor, m + 130, y + 14);
+
+  // Assertividade destacada
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(96, 108, 133);
+  doc.text("ASSERTIVIDADE", m + 4, y + 22);
+  doc.setFontSize(14);
+  doc.setTextColor(s.p !== null && s.p >= 80 ? 31 : s.p !== null && s.p >= 50 ? 163 : 164, 
+                   s.p !== null && s.p >= 80 ? 122 : s.p !== null && s.p >= 50 ? 129 : 52, 
+                   s.p !== null && s.p >= 80 ? 92 : s.p !== null && s.p >= 50 ? 47 : 74);
+  doc.text(s.p === null ? "—" : s.p + "%", m + 38, y + 22);
+
+  doc.setFontSize(8);
+  doc.setTextColor(96, 108, 133);
+  doc.text(`(${s.ok} conformes de ${s.an} respondidos • ${s.t} itens no total)`, m + 58, y + 22);
+
+  y += 34;
+
+  if (notes) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(96, 108, 133);
+    doc.text("Observações: " + notes, m, y);
+    y += 6;
+  }
+
+  // ========== TABELA DE ITENS COM DESTAQUE ==========
   const body = [];
   A[currentArea].q.forEach(q => {
     const a = ans[currentArea + "_" + q.i] || {};
     let st = "Não respondido";
     if (a.s === "ok") st = "Conforme";
     if (a.s === "nok") st = "Não Conforme";
-    const fl = [];
-    if (q.m) fl.push("M");
-    if (q.e) fl.push("E");
+    
+    let flags = [];
+    if (q.m) flags.push("MANDATÓRIO");
+    if (q.e) flags.push("EVIDENCIÁVEL");
+    
     const nImgs = (a.imgs && a.imgs.length) || 0;
-    body.push([q.i + (fl.length ? " [" + fl.join("+") + "]" : ""), q.t.substring(0, 85) + (q.t.length > 85 ? "…" : ""), st, nImgs ? nImgs + " foto" + (nImgs > 1 ? "s" : "") : "—"]);
+    const evid = nImgs ? nImgs + " foto" + (nImgs > 1 ? "s" : "") : "—";
+    
+    body.push([
+      q.i,
+      q.t,
+      flags.join("  "),
+      st,
+      evid
+    ]);
   });
 
   doc.autoTable({
     startY: y,
-    head: [["Código", "Item", "Status", "Evid."]],
+    head: [["Código", "Item Avaliado", "Classificação", "Status", "Evid."]],
     body: body,
-    theme: "striped",
-    headStyles: { fillColor: [0, 57, 56], textColor: 255, fontSize: 8 },
-    styles: { fontSize: 7.5, cellPadding: 1.8, overflow: "linebreak" },
-    columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: 105 }, 2: { cellWidth: 28 }, 3: { cellWidth: 18 } },
+    theme: "plain",
+    headStyles: {
+      fillColor: [11, 31, 63],
+      textColor: [243, 228, 187],
+      fontSize: 8,
+      fontStyle: "bold",
+      cellPadding: 3
+    },
+    styles: {
+      fontSize: 7.5,
+      cellPadding: 2.5,
+      overflow: "linebreak",
+      lineColor: [221, 225, 234],
+      lineWidth: 0.2
+    },
+    columnStyles: {
+      0: { cellWidth: 18, fontStyle: "bold", textColor: [11, 31, 63] },
+      1: { cellWidth: 92 },
+      2: { cellWidth: 32, fontSize: 6.5 },
+      3: { cellWidth: 26, fontStyle: "bold", halign: "center" },
+      4: { cellWidth: 16, halign: "center" }
+    },
     margin: { left: m, right: m },
-    didParseCell: function(d) {
-      if (d.section === "body" && d.column.index === 2) {
-        if (d.cell.raw === "Conforme") { d.cell.styles.textColor = [25, 135, 84]; d.cell.styles.fontStyle = "bold"; }
-        else if (d.cell.raw === "Não Conforme") { d.cell.styles.textColor = [220, 53, 69]; d.cell.styles.fontStyle = "bold"; }
+    didParseCell: function(data) {
+      if (data.section === "body") {
+        // Alternância sutil de fundo
+        if (data.row.index % 2 === 0) {
+          data.cell.styles.fillColor = [250, 251, 253];
+        }
+        
+        // Status com cores fortes
+        if (data.column.index === 3) {
+          if (data.cell.raw === "Conforme") {
+            data.cell.styles.textColor = [25, 135, 84];
+            data.cell.styles.fillColor = [220, 245, 230];
+            data.cell.styles.fontStyle = "bold";
+          } else if (data.cell.raw === "Não Conforme") {
+            data.cell.styles.textColor = [180, 40, 55];
+            data.cell.styles.fillColor = [255, 230, 233];
+            data.cell.styles.fontStyle = "bold";
+          } else {
+            data.cell.styles.textColor = [130, 130, 140];
+          }
+        }
+        
+        // Classificação (Mandatório / Evidenciável)
+        if (data.column.index === 2 && data.cell.raw) {
+          data.cell.styles.textColor = [163, 129, 47];
+          data.cell.styles.fontStyle = "bold";
+        }
       }
     }
   });
 
   y = doc.lastAutoTable.finalY + 8;
-  doc.setFontSize(8); doc.setTextColor(108, 117, 125);
-  doc.text("Legenda: [M] = Mandatório  |  [E] = Evidenciável", m, y); y += 5;
-  doc.text("Gerado em " + new Date().toLocaleString("pt-BR") + " • Carmak", m, y);
 
+  // Legenda
+  doc.setFontSize(7.5);
+  doc.setTextColor(96, 108, 133);
+  doc.setFont("helvetica", "normal");
+  doc.text("Legenda:  MANDATÓRIO = Item obrigatório   |   EVIDENCIÁVEL = Requer evidência fotográfica ou documental", m, y);
+  y += 5;
+  doc.text("Gerado em " + new Date().toLocaleString("pt-BR") + "  •  Carmak • Checklist Auditoria Interna ASEC", m, y);
+
+  // ========== PÁGINAS DE EVIDÊNCIAS ==========
   const evs = [];
   A[currentArea].q.forEach(q => {
     const a = ans[currentArea + "_" + q.i];
     if (a && a.imgs && a.imgs.length) evs.push({ i: q.i, t: q.t, s: a.s, imgs: a.imgs });
   });
+
   if (evs.length) {
     doc.addPage();
-    y = 18;
-    doc.setFillColor(0, 57, 56); doc.rect(0, 0, pw, 16, "F");
-    doc.setTextColor(255, 255, 255); doc.setFontSize(13); doc.setFont("helvetica", "bold");
-    doc.text("Evidências Fotográficas", m, 11);
-    doc.setTextColor(33, 37, 41); y = 26;
+    
+    // Cabeçalho da página de evidências
+    doc.setFillColor(11, 31, 63);
+    doc.rect(0, 0, pw, 22, "F");
+    doc.setFillColor(200, 162, 77);
+    doc.rect(0, 22, pw, 1.8, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Evidências Fotográficas", m, 14);
+    
+    y = 32;
     const imgW = 55, imgH = 40, gap = 6, pageBottom = 280;
+
     for (const it of evs) {
-      if (y > 245) { doc.addPage(); y = 18; }
-      doc.setFontSize(9); doc.setFont("helvetica", "bold");
-      doc.text(it.i, m, y); y += 5;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+      if (y > 245) {
+        doc.addPage();
+        doc.setFillColor(11, 31, 63);
+        doc.rect(0, 0, pw, 14, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.text("Evidências Fotográficas (continuação)", m, 9);
+        y = 22;
+      }
+
+      // Código + Status
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(11, 31, 63);
+      doc.text(it.i, m, y);
+      
+      const statusTxt = it.s === "ok" ? "Conforme" : it.s === "nok" ? "Não Conforme" : "Não respondido";
+      const statusColor = it.s === "ok" ? [25, 135, 84] : it.s === "nok" ? [180, 40, 55] : [130, 130, 140];
+      doc.setTextColor(...statusColor);
+      doc.text("• " + statusTxt, m + 22, y);
+      
+      y += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(60, 70, 90);
       const ls = doc.splitTextToSize(it.t, pw - m * 2);
-      doc.text(ls, m, y); y += ls.length * 4 + 2;
-      doc.setTextColor(it.s === "ok" ? 25 : 220, it.s === "ok" ? 135 : 53, it.s === "ok" ? 84 : 69);
-      doc.text("Status: " + (it.s === "ok" ? "Conforme" : it.s === "nok" ? "Não Conforme" : "Não respondido") + " • " + it.imgs.length + " foto(s)", m, y);
-      doc.setTextColor(33, 37, 41); y += 6;
+      doc.text(ls, m, y);
+      y += ls.length * 3.6 + 3;
 
       let xOff = m, rowMaxH = 0;
       for (let idx = 0; idx < it.imgs.length; idx++) {
         const im = it.imgs[idx];
-        if (xOff + imgW > pw - m) { xOff = m; y += rowMaxH + gap; rowMaxH = 0; }
-        if (y + imgH > pageBottom) { doc.addPage(); y = 18; xOff = m; rowMaxH = 0; }
+        if (xOff + imgW > pw - m) {
+          xOff = m;
+          y += rowMaxH + gap;
+          rowMaxH = 0;
+        }
+        if (y + imgH > pageBottom) {
+          doc.addPage();
+          y = 18;
+          xOff = m;
+          rowMaxH = 0;
+        }
         try {
           const ip = doc.getImageProperties(im.data);
           const r = Math.min(imgW / ip.width, imgH / ip.height);
           const w = ip.width * r, h = ip.height * r;
           doc.addImage(im.data, "JPEG", xOff, y, w, h);
+          // Borda sutil
+          doc.setDrawColor(200, 162, 77);
+          doc.setLineWidth(0.3);
+          doc.rect(xOff, y, w, h);
           rowMaxH = Math.max(rowMaxH, h);
         } catch (e) {
-          doc.setFontSize(7); doc.setTextColor(108, 117, 125);
+          doc.setFontSize(7);
+          doc.setTextColor(130, 130, 140);
           doc.text("[Imagem inválida]", xOff, y + 10);
-          doc.setTextColor(33, 37, 41);
           rowMaxH = Math.max(rowMaxH, 12);
         }
         xOff += imgW + gap;
@@ -1145,7 +1355,10 @@ async function generatePDF() {
     }
   }
 
-  doc.save("Relatorio_ASEC_" + A[currentArea].n.replace(/\s+/g, "_") + "_" + dealer.replace(/\s+/g, "_") + "_" + date + ".pdf");
+  // Nome do arquivo limpo
+  const safeDealer = dealer.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, "_");
+  const safeArea = A[currentArea].n.replace(/\s+/g, "_");
+  doc.save(`Relatorio_ASEC_${safeArea}_${safeDealer}_${date}.pdf`);
 }
 
 initAreaCards();
