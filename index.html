@@ -271,6 +271,31 @@ body.viewer-mode #btnNova{display:none !important}
 .crono-legend{font-size:.8rem;color:var(--m);margin-top:.75rem}
 body.viewer-mode .crono-edit-only{display:none !important}
 
+/* ===== NC Summary ===== */
+.nc-summary{margin-bottom:1.5rem}
+.nc-summary h3{color:var(--p);font-size:1.05rem;margin:0 0 .75rem}
+.nc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
+.nc-card{
+  background:var(--c);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);
+  border-left:4px solid var(--d);padding:1rem 1.1rem;display:flex;flex-direction:column;gap:.5rem
+}
+.nc-card.zero{border-left-color:var(--s)}
+.nc-card .nc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
+.nc-card .nc-head strong{color:var(--p);font-size:.95rem}
+.nc-card .nc-head .dealer{font-size:.8rem;color:var(--m);display:block;margin-top:.15rem}
+.nc-card .nc-count{
+  background:#fbe4e8;color:var(--d);font-weight:800;font-size:1.1rem;
+  min-width:2.2rem;height:2.2rem;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 .45rem
+}
+.nc-card.zero .nc-count{background:#d1e7dd;color:var(--s)}
+.nc-card ul{margin:0;padding-left:1.1rem;font-size:.82rem;color:var(--t)}
+.nc-card ul li{margin:.35rem 0}
+.nc-card ul li .code{font-weight:700;color:var(--p);font-family:Consolas,monospace;font-size:.78rem}
+.nc-card ul li .just{color:var(--d);font-size:.78rem;display:block;margin-top:.15rem}
+.nc-card .nc-empty{font-size:.85rem;color:var(--m);margin:0}
+.nc-month-label{font-size:.85rem;color:var(--m);margin:-.4rem 0 .75rem}
+
+
 
 
 </style>
@@ -426,11 +451,25 @@ body.viewer-mode .crono-edit-only{display:none !important}
 <div id="view-history" class="history-view">
 <h2 style="color:var(--p);margin-bottom:1rem">Histórico de Relatórios</h2>
 <div class="hist-filter" id="histFilterBar">
-  <label for="histAreaFilter">Filtrar por área</label>
+  <label for="histMonthFilter">Mês</label>
+  <select id="histMonthFilter" onchange="renderHistory()">
+    <option value="">Todos os meses</option>
+  </select>
+  <label for="histAreaFilter">Área</label>
   <select id="histAreaFilter" onchange="renderHistory()">
     <option value="">Todas as áreas</option>
   </select>
+  <label for="histDealerFilter">Dealer / Filial</label>
+  <select id="histDealerFilter" onchange="renderHistory()">
+    <option value="">Todos</option>
+  </select>
 </div>
+<div class="nc-summary" id="ncSummary">
+  <h3>Não conformidades do período</h3>
+  <p class="nc-month-label" id="ncMonthLabel"></p>
+  <div class="nc-grid" id="ncGrid"></div>
+</div>
+<h3 style="color:var(--p);font-size:1.05rem;margin:0 0 .75rem">Relatórios salvos</h3>
 <div class="hist-list" id="histList"></div>
 </div>
 
@@ -1326,15 +1365,182 @@ function saveToHistory() {
   }
 }
 
+
+function monthKeyFromDate(d) {
+  if (!d) return "";
+  const s = String(d).trim();
+  // YYYY-MM-DD
+  let m = s.match(/^(\d{4})-(\d{2})/);
+  if (m) return m[1] + "-" + m[2];
+  // DD/MM/YYYY
+  m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m) return m[3] + "-" + m[2];
+  return "";
+}
+function monthLabel(key) {
+  if (!key) return "Todos os meses";
+  const [y, m] = key.split("-");
+  const names = ["","Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const mi = parseInt(m, 10);
+  return (names[mi] || m) + " / " + y;
+}
+function extractNCs(entry) {
+  const ncs = [];
+  if (!entry || !entry.answers || !entry.area || !A[entry.area]) return ncs;
+  const qs = A[entry.area].q || [];
+  qs.forEach(q => {
+    const a = entry.answers[entry.area + "_" + q.i];
+    if (a && a.s === "nok") {
+      ncs.push({
+        code: q.i,
+        text: q.t,
+        just: a.just || "",
+        mandatory: !!q.m,
+        evidenciavel: !!q.e
+      });
+    }
+  });
+  return ncs;
+}
+function populateHistFilters(list) {
+  const months = new Set();
+  const dealers = new Set();
+  list.forEach(h => {
+    const mk = monthKeyFromDate(h.date);
+    if (mk) months.add(mk);
+    if (h.dealer) dealers.add(h.dealer);
+  });
+  const monthSel = document.getElementById("histMonthFilter");
+  if (monthSel) {
+    const cur = monthSel.value;
+    const sorted = [...months].sort().reverse();
+    monthSel.innerHTML = '<option value="">Todos os meses</option>' +
+      sorted.map(k => `<option value="${k}">${monthLabel(k)}</option>`).join("");
+    if (cur && sorted.includes(cur)) monthSel.value = cur;
+    else if (!cur && sorted.length) {
+      // default: mês atual se existir, senão o mais recente
+      const now = new Date();
+      const curKey = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0");
+      monthSel.value = sorted.includes(curKey) ? curKey : sorted[0];
+    }
+  }
+  const dealerSel = document.getElementById("histDealerFilter");
+  if (dealerSel) {
+    const cur = dealerSel.value;
+    const sorted = [...dealers].sort();
+    dealerSel.innerHTML = '<option value="">Todos</option>' +
+      sorted.map(d => `<option value="${d.replace(/"/g,"&quot;")}">${d}</option>`).join("");
+    if (cur && sorted.includes(cur)) dealerSel.value = cur;
+  }
+  // area filter already filled elsewhere - ensure options
+  const areaSel = document.getElementById("histAreaFilter");
+  if (areaSel && areaSel.options.length <= 1) {
+    areaSel.innerHTML = '<option value="">Todas as áreas</option>' +
+      Object.keys(A).map(k => `<option value="${k}">${A[k].n}</option>`).join("");
+  }
+}
+function renderNcSummary(list) {
+  const grid = document.getElementById("ncGrid");
+  const label = document.getElementById("ncMonthLabel");
+  if (!grid) return;
+
+  const month = document.getElementById("histMonthFilter")?.value || "";
+  const areaF = document.getElementById("histAreaFilter")?.value || "";
+  const dealerF = document.getElementById("histDealerFilter")?.value || "";
+
+  if (label) {
+    label.textContent = month
+      ? ("Referência: " + monthLabel(month) + " · cards por área e dealer")
+      : "Referência: todos os meses · cards por área e dealer";
+  }
+
+  // filter list
+  let filtered = list;
+  if (month) filtered = filtered.filter(h => monthKeyFromDate(h.date) === month);
+  if (areaF) filtered = filtered.filter(h => h.area === areaF);
+  if (dealerF) filtered = filtered.filter(h => h.dealer === dealerF);
+  if (currentUser && currentUser.role === "viewer") {
+    filtered = filtered.filter(h => h.area === currentUser.area);
+  }
+
+  // group by area|dealer
+  const groups = {};
+  filtered.forEach(h => {
+    const key = (h.area || "?") + "||" + (h.dealer || "—");
+    if (!groups[key]) {
+      groups[key] = {
+        area: h.area,
+        areaName: h.areaName || (A[h.area] && A[h.area].n) || h.area,
+        dealer: h.dealer || "—",
+        ncs: [],
+        reports: 0
+      };
+    }
+    groups[key].reports++;
+    extractNCs(h).forEach(nc => {
+      // avoid exact duplicate code in same group (keep first just)
+      if (!groups[key].ncs.some(x => x.code === nc.code && x.just === nc.just)) {
+        groups[key].ncs.push(nc);
+      }
+    });
+  });
+
+  const cards = Object.values(groups).sort((a, b) => {
+    const c = b.ncs.length - a.ncs.length;
+    if (c) return c;
+    return (a.areaName + a.dealer).localeCompare(b.areaName + b.dealer, "pt-BR");
+  });
+
+  if (!cards.length) {
+    grid.innerHTML = '<div class="nc-card zero"><p class="nc-empty">Nenhum relatório no período selecionado.</p></div>';
+    return;
+  }
+
+  grid.innerHTML = cards.map(g => {
+    const n = g.ncs.length;
+    const zero = n === 0;
+    const items = zero
+      ? '<p class="nc-empty">Nenhuma não conformidade neste período.</p>'
+      : '<ul>' + g.ncs.map(nc => {
+          const flags = [];
+          if (nc.mandatory) flags.push("Mandatório");
+          if (nc.evidenciavel) flags.push("Evidenciável");
+          return `<li>
+            <span class="code">${nc.code}</span>${flags.length ? " · " + flags.join(", ") : ""}
+            <div>${nc.text}</div>
+            ${nc.just ? `<span class="just">Motivo: ${nc.just.replace(/</g,"&lt;")}</span>` : ""}
+          </li>`;
+        }).join("") + '</ul>';
+    return `<div class="nc-card${zero ? " zero" : ""}">
+      <div class="nc-head">
+        <div>
+          <strong>${g.areaName}</strong>
+          <span class="dealer">${g.dealer} · ${g.reports} relatório${g.reports === 1 ? "" : "s"}</span>
+        </div>
+        <div class="nc-count" title="Não conformidades">${n}</div>
+      </div>
+      ${items}
+    </div>`;
+  }).join("");
+}
+
+
 function renderHistory() {
   let list = getHistory();
+  populateHistFilters(list);
+  renderNcSummary(list);
+
   // Viewer: só a própria área
   if (currentUser && currentUser.role === "viewer") {
     list = list.filter(h => h.area === currentUser.area);
-  } else {
-    const f = document.getElementById("histAreaFilter");
-    if (f && f.value) list = list.filter(h => h.area === f.value);
   }
+  const fArea = document.getElementById("histAreaFilter");
+  if (fArea && fArea.value) list = list.filter(h => h.area === fArea.value);
+  const fMonth = document.getElementById("histMonthFilter");
+  if (fMonth && fMonth.value) list = list.filter(h => monthKeyFromDate(h.date) === fMonth.value);
+  const fDealer = document.getElementById("histDealerFilter");
+  if (fDealer && fDealer.value) list = list.filter(h => h.dealer === fDealer.value);
+
   const el = document.getElementById("histList");
   if (!list.length) {
     el.innerHTML = '<div class="empty">Nenhum relatório salvo' +
