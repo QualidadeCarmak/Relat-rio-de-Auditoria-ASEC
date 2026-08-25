@@ -394,12 +394,16 @@ body.viewer-mode .crono-edit-only{display:none !important}
             <input type="date" id="cronoF_date">
           </div>
           <div class="fg">
-            <label>Modalidade</label>
-            <select id="cronoF_mode">
-              <option value="Presencial">Presencial</option>
-              <option value="Online">Online</option>
-            </select>
+            <label>Horário</label>
+            <input type="time" id="cronoF_time" value="09:00">
           </div>
+        </div>
+        <div class="fg">
+          <label>Modalidade</label>
+          <select id="cronoF_mode">
+            <option value="Presencial">Presencial</option>
+            <option value="Online">Online</option>
+          </select>
         </div>
         <div class="fg">
           <label>Observação</label>
@@ -692,6 +696,8 @@ function resetCronoForm() {
   if (notes) notes.value = "";
   const mode = document.getElementById("cronoF_mode");
   if (mode) mode.value = "Presencial";
+  const time = document.getElementById("cronoF_time");
+  if (time) time.value = "09:00";
   autoFocal();
 }
 
@@ -705,6 +711,7 @@ function editCronoEvent(id) {
   document.getElementById("cronoF_area").value = r.area;
   document.getElementById("cronoF_focal").value = r.focal || "";
   document.getElementById("cronoF_date").value = r.date || "";
+  document.getElementById("cronoF_time").value = r.time || "09:00";
   document.getElementById("cronoF_mode").value = r.mode || "Presencial";
   document.getElementById("cronoF_notes").value = r.notes || "";
   document.querySelector(".crono-form")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -716,6 +723,7 @@ function submitCronoForm() {
   const area = document.getElementById("cronoF_area").value;
   const focal = document.getElementById("cronoF_focal").value.trim();
   const date = document.getElementById("cronoF_date").value;
+  const time = document.getElementById("cronoF_time").value || "";
   const mode = document.getElementById("cronoF_mode").value;
   const notes = document.getElementById("cronoF_notes").value.trim();
   if (!dealer || !area || !date) {
@@ -726,12 +734,12 @@ function submitCronoForm() {
   if (editId) {
     const idx = cronoRows.findIndex(r => r.id === editId);
     if (idx >= 0) {
-      cronoRows[idx] = { id: editId, dealer, area, focal, date, mode, notes };
+      cronoRows[idx] = { id: editId, dealer, area, focal, date, time, mode, notes };
     }
   } else {
     cronoRows.push({
       id: "c_" + Date.now().toString(36),
-      dealer, area, focal, date, mode, notes
+      dealer, area, focal, date, time, mode, notes
     });
   }
   persistCrono();
@@ -794,6 +802,9 @@ function renderCrono() {
     if (!byDate[r.date]) byDate[r.date] = [];
     byDate[r.date].push(r);
   });
+  Object.keys(byDate).forEach(k => {
+    byDate[k].sort((a,b) => (a.time||"99:99").localeCompare(b.time||"99:99"));
+  });
 
   let htmlDays = "";
   // previous month pad
@@ -807,8 +818,10 @@ function renderCrono() {
     const evs = byDate[iso] || [];
     const chips = evs.map(r => {
       const short = ((A[r.area] && A[r.area].n) || r.area).split(" ")[0];
-      const tip = ((A[r.area] && A[r.area].n) || r.area) + " · " + (r.dealer||"").replace("Matriz - ","").replace("Filial - ","") + " · " + (r.mode||"");
-      return `<button type="button" class="crono-ev" style="background:${AREA_COLORS[r.area]||'#555'}" title="${tip.replace(/"/g,'&quot;')}" onclick="editCronoEvent('${r.id}')">${short}</button>`;
+      const tm = r.time ? r.time : "";
+      const label = tm ? (tm + " " + short) : short;
+      const tip = ((A[r.area] && A[r.area].n) || r.area) + (tm ? " · " + tm : "") + " · " + (r.dealer||"").replace("Matriz - ","").replace("Filial - ","") + " · " + (r.mode||"");
+      return `<button type="button" class="crono-ev" style="background:${AREA_COLORS[r.area]||'#555'}" title="${tip.replace(/"/g,'&quot;')}" onclick="editCronoEvent('${r.id}')">${label}</button>`;
     }).join("");
     htmlDays += `<div class="crono-day${isToday?" today":""}"><div class="dn">${d}</div>${chips}</div>`;
   }
@@ -825,7 +838,7 @@ function renderCrono() {
   if (list) {
     const monthRows = rows
       .filter(r => r.date && r.date.startsWith(cronoYear + "-" + String(cronoMonth+1).padStart(2,"0")))
-      .sort((a,b) => a.date.localeCompare(b.date));
+      .sort((a,b) => (a.date + (a.time||"")).localeCompare(b.date + (b.time||"")));
     if (!monthRows.length) {
       list.innerHTML = '<p style="color:var(--m);font-size:.85rem;margin:0">Nenhuma auditoria neste mês.</p>';
     } else {
@@ -834,11 +847,12 @@ function renderCrono() {
         const nome = (A[r.area] && A[r.area].n) || r.area;
         const parts = r.date.split("-");
         const ds = parts[2] + "/" + parts[1];
+        const tm = r.time ? r.time : "";
         const dealerShort = (r.dealer||"").replace("Matriz - ","Matriz · ").replace("Filial - ","Filial · ");
         return `<div class="crono-list-item">
           <div class="bar" style="background:${AREA_COLORS[r.area]||'#888'}"></div>
           <div class="meta" ${canEdit?`style="cursor:pointer" onclick="editCronoEvent('${r.id}')"`:""}>
-            <strong>${ds} · ${nome}</strong>
+            <strong>${ds}${tm ? " · " + tm : ""} · ${nome}</strong>
             <span>${dealerShort} · ${r.focal||"—"} · ${r.mode||"Presencial"}</span>
           </div>
           ${canEdit?`<button type="button" class="rm" onclick="delCronoRow('${r.id}')">Excluir</button>`:""}
