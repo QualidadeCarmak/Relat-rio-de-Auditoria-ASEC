@@ -167,12 +167,28 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
   padding:.65rem 1rem;border-radius:10px;margin-bottom:1rem;font-size:.88rem;font-weight:600
 }
 body.readonly-mode .rg input,
+body.readonly-mode .rg label,
 body.readonly-mode .just-box textarea,
 body.readonly-mode .add-photo-btn,
-body.readonly-mode .thumb .rm{pointer-events:none;opacity:.65}
+body.readonly-mode .thumb .rm,
+body.readonly-mode input[type="file"]{
+  pointer-events:none !important;
+  cursor:not-allowed !important;
+}
+body.readonly-mode .rg label{opacity:.85}
+body.readonly-mode .just-box textarea{
+  opacity:1; background:#f3f4f6 !important; border-color:#cfd3db !important; color:#333 !important;
+  resize:none !important;
+}
+body.readonly-mode .add-photo-btn,
+body.readonly-mode .thumb .rm{display:none !important}
 body.readonly-mode .act .bg,
-body.readonly-mode .act .bs{display:none}
-body.viewer-mode #btnNova{display:none}
+body.readonly-mode .act .bs{display:none !important}
+body.readonly-mode .meta input,
+body.readonly-mode .meta select{
+  pointer-events:none !important; background:#f3f4f6 !important; opacity:.9;
+}
+body.viewer-mode #btnNova{display:none !important}
 
 </style>
 </head>
@@ -561,6 +577,10 @@ function startArea(key) {
   editingHistoryId = null;
   readOnly = false;
   document.body.classList.remove("readonly-mode");
+  ["auditorName","dealerName","auditDate","generalNotes"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = false;
+  });
   document.getElementById("areaTitle").textContent = A[key].n;
   renderQuestions(key);
   updateAreaScore();
@@ -580,6 +600,12 @@ function renderQuestions(key) {
     let bd = "";
     if (q.m) bd += '<span class="bd bm">Mandatório</span>';
     if (q.e) bd += '<span class="bd be">Evidenciável</span>';
+    const ro = !!readOnly;
+    const dis = ro ? "disabled" : "";
+    const ocOk = ro ? "" : `onchange="setA('${key}','${q.i}','ok')"`;
+    const ocNok = ro ? "" : `onchange="setA('${key}','${q.i}','nok')"`;
+    const oiJust = ro ? "" : `oninput="saveJust('${key}','${q.i}',this.value)"`;
+    const ocFile = ro ? "" : `onchange="hF('${key}','${q.i}',this)"`;
     c.innerHTML = `
       <div class="qh">
         <span class="qcde">${q.i}</span>
@@ -589,16 +615,16 @@ function renderQuestions(key) {
       ${q.g ? `<div class="gd">${q.g}</div>` : ""}
       <div class="ar">
         <div class="rg">
-          <label class="ol"><input type="radio" name="${key}_${q.i}" value="ok" ${a.s==="ok"?"checked":""} onchange="setA('${key}','${q.i}','ok')"> Conforme</label>
-          <label class="nl"><input type="radio" name="${key}_${q.i}" value="nok" ${a.s==="nok"?"checked":""} onchange="setA('${key}','${q.i}','nok')"> Não Conforme</label>
+          <label class="ol"><input type="radio" name="${key}_${q.i}" value="ok" ${a.s==="ok"?"checked":""} ${dis} ${ocOk}> Conforme</label>
+          <label class="nl"><input type="radio" name="${key}_${q.i}" value="nok" ${a.s==="nok"?"checked":""} ${dis} ${ocNok}> Não Conforme</label>
         </div>
         <div class="just-box ${a.s==="nok"?"show":""}" id="just-wrap-${key}-${q.i}">
           <label>Motivo da Não Conformidade *</label>
-          <textarea id="just-${key}-${q.i}" placeholder="Descreva o motivo da não conformidade..." oninput="saveJust('${key}','${q.i}',this.value)">${a.just||""}</textarea>
+          <textarea id="just-${key}-${q.i}" placeholder="Descreva o motivo da não conformidade..." ${dis} ${oiJust} ${ro ? "readonly" : ""}>${a.just||""}</textarea>
         </div>
         <div class="eb">
-          <label class="add-photo-btn" for="f-${key}-${q.i}">📷 Adicionar Fotos</label>
-          <input type="file" accept="image/*" multiple capture="environment" id="f-${key}-${q.i}" onchange="hF('${key}','${q.i}',this)" style="display:none">
+          ${ro ? "" : `<label class="add-photo-btn" for="f-${key}-${q.i}">📷 Adicionar Fotos</label>
+          <input type="file" accept="image/*" multiple capture="environment" id="f-${key}-${q.i}" ${ocFile} style="display:none">`}
           <span class="photo-count" id="cnt-${key}-${q.i}"></span>
           <div class="gallery" id="gal-${key}-${q.i}"></div>
         </div>
@@ -610,12 +636,14 @@ function renderQuestions(key) {
 
 function saveJust(k, i, val) {
   const key = k + "_" + i;
+  if (readOnly || (currentUser && currentUser.role === "viewer")) return;
   if (!ans[key]) ans[key] = { s: null, imgs: [], just: "" };
   ans[key].just = val;
 }
 
 function setA(k, i, s) {
   const key = k + "_" + i;
+  if (readOnly || (currentUser && currentUser.role === "viewer")) return;
   if (!ans[key]) ans[key] = { s: null, imgs: [], just: "" };
   ans[key].s = s;
   const c = document.getElementById("c-" + k + "-" + i);
@@ -701,6 +729,7 @@ async function prepareImagesForPdf(imgs) {
 
 async function hF(k, i, inp) {
   const key = k + "_" + i;
+  if (readOnly || (currentUser && currentUser.role === "viewer")) { if (inp) inp.value = ""; return; }
   if (!ans[key]) ans[key] = { s: null, imgs: [], just: "" };
   if (!ans[key].imgs) ans[key].imgs = [];
   const room = IMG_MAX_PER_ITEM - ans[key].imgs.length;
@@ -734,7 +763,7 @@ function renderGallery(k, i) {
   g.innerHTML = imgs.map((im, idx) => `
     <div class="thumb">
       <img src="${im.data}" alt="Evidência" onclick="openLightbox('${k}','${i}',${idx})">
-      <button type="button" class="rm" onclick="event.stopPropagation();removeImg('${k}','${i}',${idx})">×</button>
+      ${readOnly ? "" : `<button type="button" class="rm" onclick="event.stopPropagation();removeImg('${k}','${i}',${idx})">×</button>`}
     </div>`).join("");
   const cnt = document.getElementById("cnt-" + k + "-" + i);
   if (cnt) cnt.textContent = imgs.length ? imgs.length + " foto" + (imgs.length > 1 ? "s" : "") + " anexada" + (imgs.length > 1 ? "s" : "") : "Nenhuma foto anexada";
@@ -742,6 +771,7 @@ function renderGallery(k, i) {
 
 function removeImg(k, i, idx) {
   const key = k + "_" + i;
+  if (readOnly || (currentUser && currentUser.role === "viewer")) return;
   if (!ans[key] || !ans[key].imgs) return;
   ans[key].imgs.splice(idx, 1);
   renderGallery(k, i);
@@ -788,6 +818,10 @@ function showView(v) {
   if (v === "history") {
     readOnly = false;
     document.body.classList.remove("readonly-mode");
+    ["auditorName","dealerName","auditDate","generalNotes"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = false;
+    });
     renderHistory();
   }
 }
@@ -906,6 +940,12 @@ function loadFromHistory(id) {
 
   readOnly = !isMaster();
   document.body.classList.toggle("readonly-mode", readOnly);
+
+  // Trava campos de cabeçalho em modo leitura
+  ["auditorName","dealerName","auditDate","generalNotes"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = readOnly;
+  });
 
   if (readOnly) {
     editingHistoryId = null;
