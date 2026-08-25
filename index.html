@@ -416,36 +416,92 @@ function setA(k, i, s) {
   updateAreaScore();
 }
 
-function compressImage(file, maxW = 1280, quality = 0.72) {
+/* Compressão agressiva para WhatsApp / e-mail / Teams (PDF leve) */
+const IMG_MAX_SIDE_STORE = 960;   // ao anexar no checklist
+const IMG_QUALITY_STORE = 0.58;
+const IMG_MAX_SIDE_PDF = 720;     // ao gerar o PDF
+const IMG_QUALITY_PDF = 0.48;
+const IMG_MAX_PER_ITEM = 5;       // limite por pergunta
+
+function compressDataUrl(dataUrl, maxSide, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      const side = Math.max(w, h);
+      if (side > maxSide) {
+        const r = maxSide / side;
+        w = Math.round(w * r);
+        h = Math.round(h * r);
+      }
+      // evita imagens minúsculas inválidas
+      w = Math.max(w, 1);
+      h = Math.max(h, 1);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+function compressImage(file, maxSide = IMG_MAX_SIDE_STORE, quality = IMG_QUALITY_STORE) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        let w = img.width, h = img.height;
-        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-        const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
+      compressDataUrl(e.target.result, maxSide, quality).then(resolve).catch(reject);
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
+/** Recomprime imagens já anexadas para o PDF (garante tamanho final pequeno). */
+async function prepareImagesForPdf(imgs) {
+  const out = [];
+  for (const im of (imgs || [])) {
+    if (!im || !im.data) continue;
+    try {
+      const data = await compressDataUrl(im.data, IMG_MAX_SIDE_PDF, IMG_QUALITY_PDF);
+      out.push({ data, name: im.name || "foto.jpg" });
+    } catch (e) {
+      // se falhar, tenta original só se for JPEG pequeno
+      if (typeof im.data === "string" && im.data.indexOf("data:image/jpeg") === 0 && im.data.length < 350000) {
+        out.push(im);
+      }
+    }
+  }
+  return out;
+}
+
 async function hF(k, i, inp) {
   const key = k + "_" + i;
   if (!ans[key]) ans[key] = { s: null, imgs: [], just: "" };
   if (!ans[key].imgs) ans[key].imgs = [];
-  for (const f of Array.from(inp.files || [])) {
+  const room = IMG_MAX_PER_ITEM - ans[key].imgs.length;
+  if (room <= 0) {
+    alert("Limite de " + IMG_MAX_PER_ITEM + " fotos por item. Remova alguma antes de adicionar.");
+    inp.value = "";
+    return;
+  }
+  const files = Array.from(inp.files || []).slice(0, room);
+  for (const f of files) {
+    if (!f.type || !f.type.startsWith("image/")) continue;
     try {
       const data = await compressImage(f);
-      ans[key].imgs.push({ data, name: f.name });
-    } catch (e) {}
+      ans[key].imgs.push({ data, name: (f.name || "foto").replace(/\.[^.]+$/, "") + ".jpg" });
+    } catch (e) {
+      console.warn("Falha ao comprimir imagem", f.name, e);
+    }
+  }
+  if ((inp.files || []).length > room) {
+    alert("Apenas " + room + " foto(s) adicionada(s) (máx. " + IMG_MAX_PER_ITEM + " por item).");
   }
   inp.value = "";
   renderGallery(k, i);
@@ -875,14 +931,28 @@ async function generatePDF() {
   doc.setTextColor(140, 145, 155);
   doc.text("Assinatura", m + 128, y + 25);
 
-  // ===== EVIDÊNCIAS =====
+  // ===== EVIDÊNCIAS (recomprimidas para PDF leve) =====
   const evs = [];
-  A[currentArea].q.forEach(q => {
+  let totalPhotoBytes = 0;
+  for (const q of A[currentArea].q) {
     const a = ans[currentArea + "_" + q.i];
     if (a && a.imgs && a.imgs.length) {
-      evs.push({ i: q.i, t: q.t, s: a.s, just: a.just, imgs: a.imgs });
+      const imgs = await prepareImagesForPdf(a.imgs);
+      imgs.forEach(im => { totalPhotoBytes += (im.data ? im.data.length : 0); });
+      if (imgs.length) evs.push({ i: q.i, t: q.t, s: a.s, just: a.just, imgs });
     }
-  });
+  }
+
+  // ~base64 overhead: tamanho aproximado do payload de fotos no PDF
+  const approxMb = (totalPhotoBytes * 0.75) / (1024 * 1024);
+  if (approxMb > 8) {
+    const ok = confirm(
+      "Atenção: as evidências somam cerca de " + approxMb.toFixed(1) + " MB.\n" +
+      "Arquivos grandes podem falhar no WhatsApp, e-mail ou Teams.\n\n" +
+      "Deseja gerar mesmo assim?\n(Recomendado: menos fotos ou remova as menos importantes.)"
+    );
+    if (!ok) return;
+  }
 
   if (evs.length) {
     doc.addPage();
@@ -971,9 +1041,14 @@ async function generatePDF() {
     addFooter(doc, i, totalPages);
   }
 
-  const safeDealer = dealer.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, "_");
-  const safeArea = A[currentArea].n.replace(/\s+/g, "_");
-  doc.save(`Relatorio_ASEC_${safeArea}_${safeDealer}_${date}.pdf`);
+  const safe = (s) => String(s || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "")
+    .slice(0, 40) || "x";
+  const fname = "Relatorio_ASEC_" + safe(A[currentArea].n) + "_" + safe(dealer) + "_" + safe(date) + ".pdf";
+  doc.save(fname);
 }
 
 // Inicialização
