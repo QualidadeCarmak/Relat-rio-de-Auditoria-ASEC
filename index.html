@@ -102,9 +102,100 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 .empty{text-align:center;padding:3rem;color:var(--m)}
 .fn{text-align:center;font-size:.8rem;color:var(--m);margin-top:2rem;padding-bottom:2rem}
 @media(max-width:600px){header{flex-wrap:wrap}.nav{margin-left:0;width:100%}}
+
+/* ===== Login ===== */
+#login-screen{
+  position:fixed;inset:0;z-index:5000;
+  background:#06402b;
+  display:flex;align-items:center;justify-content:center;
+  padding:1.5rem;
+}
+#login-screen.hidden{display:none}
+.login-card{
+  width:100%;max-width:400px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(200,162,77,.45);
+  border-radius:18px;padding:2rem 1.75rem 1.75rem;
+  box-shadow:0 12px 40px rgba(0,0,0,.35);
+  backdrop-filter:blur(8px);
+}
+.login-card .logo-wrap{text-align:center;margin-bottom:1.25rem}
+.login-card .logo-wrap img{height:48px;width:auto}
+.login-card h1{
+  color:#fff;font-size:1.2rem;font-weight:700;text-align:center;margin-bottom:.25rem
+}
+.login-card .sub{
+  color:#f3e4bb;font-size:.82rem;text-align:center;margin-bottom:1.4rem;opacity:.9
+}
+.login-card label{display:block;color:#f3e4bb;font-size:.78rem;margin-bottom:.3rem;font-weight:600}
+.login-card input{
+  width:100%;padding:.65rem .85rem;border-radius:8px;border:1px solid rgba(200,162,77,.4);
+  background:rgba(255,255,255,.95);color:#152238;font-size:.95rem;margin-bottom:.9rem;
+  font-family:inherit
+}
+.login-card input:focus{outline:2px solid #c8a24d;outline-offset:1px}
+.login-card .btn-login{
+  width:100%;padding:.75rem;border:none;border-radius:8px;
+  background:linear-gradient(135deg,#c8a24d,#a3812f);color:#042e1f;
+  font-weight:800;font-size:1rem;cursor:pointer;margin-top:.25rem
+}
+.login-card .btn-login:hover{filter:brightness(1.05)}
+.login-error{
+  display:none;background:rgba(164,52,74,.25);border:1px solid rgba(164,52,74,.5);
+  color:#ffc9d0;padding:.55rem .75rem;border-radius:8px;font-size:.85rem;margin-bottom:.9rem;text-align:center
+}
+.login-error.show{display:block}
+.login-foot{text-align:center;color:rgba(243,228,187,.55);font-size:.72rem;margin-top:1.1rem}
+#app-root.hidden{display:none}
+.user-chip{
+  font-size:.78rem;color:#f3e4bb;border:1px solid rgba(200,162,77,.4);
+  padding:.3rem .7rem;border-radius:20px;background:rgba(255,255,255,.08);white-space:nowrap
+}
+.btn-logout{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#fff;
+  padding:.4rem .85rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:.85rem
+}
+.btn-logout:hover{background:rgba(255,255,255,.16)}
+.hist-filter{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;align-items:center}
+.hist-filter label{font-size:.8rem;color:var(--m);font-weight:600}
+.hist-filter select{
+  padding:.4rem .7rem;border:1px solid var(--b);border-radius:8px;font-size:.9rem;background:#fff
+}
+.hist-card .nc{font-size:.8rem;color:var(--d);font-weight:600}
+.readonly-banner{
+  background:#fff6df;border:1px solid #e0c56a;color:#8a6b00;
+  padding:.65rem 1rem;border-radius:10px;margin-bottom:1rem;font-size:.88rem;font-weight:600
+}
+body.readonly-mode .rg input,
+body.readonly-mode .just-box textarea,
+body.readonly-mode .add-photo-btn,
+body.readonly-mode .thumb .rm{pointer-events:none;opacity:.65}
+body.readonly-mode .act .bg,
+body.readonly-mode .act .bs{display:none}
+body.viewer-mode #btnNova{display:none}
+
 </style>
 </head>
 <body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="logo-wrap">
+      <img src="Logotipo_Carmak__Branco_.png" alt="Carmak" onerror="this.style.display='none'">
+    </div>
+    <h1>Checklist Auditoria ASEC</h1>
+    <p class="sub">Acesso restrito · Uso interno Carmak</p>
+    <div class="login-error" id="loginError">Usuário ou senha inválidos</div>
+    <label for="loginUser">Usuário</label>
+    <input type="text" id="loginUser" autocomplete="username" placeholder="Seu usuário">
+    <label for="loginPass">Senha</label>
+    <input type="password" id="loginPass" autocomplete="current-password" placeholder="5 dígitos" maxlength="8" inputmode="numeric">
+    <button type="button" class="btn-login" id="btnLogin" onclick="doLogin()">Entrar</button>
+    <p class="login-foot">Carmak · Toyota Material Handling · Documento controlado</p>
+  </div>
+</div>
+<div id="app-root" class="hidden">
+
 <header>
 <img class="logo" src="Logotipo_Carmak__Branco_.png" alt="Carmak" onerror="this.style.display='none'">
 <div class="titles">
@@ -112,8 +203,10 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 <p>Carmak • Toyota Material Handling</p>
 </div>
 <div class="nav">
+<span class="user-chip" id="userChip">—</span>
 <button id="btnNova" class="on" onclick="showView('select')">Nova Auditoria</button>
 <button id="btnHist" onclick="showView('history')">Histórico</button>
+<button type="button" class="btn-logout" onclick="doLogout()">Sair</button>
 </div>
 </header>
 
@@ -156,6 +249,12 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 
 <div id="view-history" class="history-view">
 <h2 style="color:var(--p);margin-bottom:1rem">Histórico de Relatórios</h2>
+<div class="hist-filter" id="histFilterBar">
+  <label for="histAreaFilter">Filtrar por área</label>
+  <select id="histAreaFilter" onchange="renderHistory()">
+    <option value="">Todas as áreas</option>
+  </select>
+</div>
 <div class="hist-list" id="histList"></div>
 </div>
 
@@ -166,6 +265,7 @@ header .titles p{font-size:.85rem;color:var(--gold-lt);margin-top:.15rem;letter-
 <button class="lightbox-close" onclick="closeLightbox()">×</button>
 <img id="lightboxImg" src="" alt="Evidência">
 </div>
+</div><!-- /app-root -->
 
 <script>
 const ICONS = {RH:"👥",Seg:"🛡️",Pos:"🔧",Ofi:"🏭",Alm:"📦"};
@@ -320,6 +420,115 @@ const DESC = {
 let currentArea = null;
 let editingHistoryId = null;
 const ans = {};
+
+/* ===================== AUTH ===================== */
+const USERS = {
+  // Master
+  qualidade: { user: "Qualidade", pass: "90641", role: "master", area: null, label: "Qualidade (Master)" },
+  // Visualizadores por área (chave = área do objeto A)
+  rh: { user: "RH", pass: "18372", role: "viewer", area: "RH", label: "Recursos Humanos" },
+  seguranca: { user: "Seguranca", pass: "29483", role: "viewer", area: "Seg", label: "Segurança" },
+  posvenda: { user: "PosVenda", pass: "30594", role: "viewer", area: "Pos", label: "Pós Venda" },
+  oficina: { user: "Oficina", pass: "41605", role: "viewer", area: "Ofi", label: "Oficina" },
+  almoxarifado: { user: "Almoxarifado", pass: "52716", role: "viewer", area: "Alm", label: "Almoxarifado" }
+};
+
+const SESSION_KEY = "asec_session_v1";
+let currentUser = null; // { key, user, role, area, label }
+let readOnly = false;
+
+function findUser(username, password) {
+  const u = String(username || "").trim().toLowerCase();
+  const p = String(password || "").trim();
+  for (const [key, cfg] of Object.entries(USERS)) {
+    if (cfg.user.toLowerCase() === u && cfg.pass === p) {
+      return { key, ...cfg };
+    }
+  }
+  return null;
+}
+
+function saveSession(u) {
+  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user: u.user, key: u.key })); } catch(e) {}
+}
+function clearSession() {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+}
+function loadSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || !s.user) return null;
+    return findUser(s.user, USERS[s.key] ? USERS[s.key].pass : "");
+  } catch(e) { return null; }
+}
+
+function doLogin() {
+  const u = document.getElementById("loginUser").value;
+  const p = document.getElementById("loginPass").value;
+  const err = document.getElementById("loginError");
+  const found = findUser(u, p);
+  if (!found) {
+    err.classList.add("show");
+    return;
+  }
+  err.classList.remove("show");
+  currentUser = found;
+  saveSession(found);
+  enterApp();
+}
+
+function doLogout() {
+  currentUser = null;
+  clearSession();
+  readOnly = false;
+  document.body.classList.remove("readonly-mode", "viewer-mode");
+  document.getElementById("app-root").classList.add("hidden");
+  document.getElementById("login-screen").classList.remove("hidden");
+  document.getElementById("loginPass").value = "";
+  showView("select");
+}
+
+function enterApp() {
+  document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("app-root").classList.remove("hidden");
+  document.getElementById("userChip").textContent = currentUser.label || currentUser.user;
+
+  const isViewer = currentUser.role === "viewer";
+  document.body.classList.toggle("viewer-mode", isViewer);
+
+  // Filtro de área: master vê; viewer esconde
+  const filterBar = document.getElementById("histFilterBar");
+  if (filterBar) filterBar.style.display = isViewer ? "none" : "flex";
+  populateHistFilter();
+
+  if (isViewer) {
+    showView("history");
+  } else {
+    showView("select");
+  }
+}
+
+function populateHistFilter() {
+  const sel = document.getElementById("histAreaFilter");
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todas as áreas</option>' +
+    Object.keys(A).map(k => `<option value="${k}">${A[k].n}</option>`).join("");
+  if (cur) sel.value = cur;
+}
+
+function isMaster() {
+  return currentUser && currentUser.role === "master";
+}
+function canAccessArea(areaKey) {
+  if (!currentUser) return false;
+  if (currentUser.role === "master") return true;
+  return currentUser.area === areaKey;
+}
+
+
 document.getElementById("auditDate").valueAsDate = new Date();
 
 function initAreaCards() {
@@ -336,6 +545,12 @@ function initAreaCards() {
 }
 
 function startArea(key) {
+  if (!isMaster()) {
+    alert("Apenas o perfil Qualidade pode iniciar novas auditorias.");
+    showView("history");
+    return;
+  }
+  if (!A[key]) return;
   const auditor = document.getElementById("auditorName").value.trim();
   const dealer = document.getElementById("dealerName").value.trim();
   if (!auditor || !dealer) {
@@ -344,6 +559,8 @@ function startArea(key) {
   }
   currentArea = key;
   editingHistoryId = null;
+  readOnly = false;
+  document.body.classList.remove("readonly-mode");
   document.getElementById("areaTitle").textContent = A[key].n;
   renderQuestions(key);
   updateAreaScore();
@@ -351,6 +568,8 @@ function startArea(key) {
 }
 
 function renderQuestions(key) {
+  const oldBan = document.getElementById("readonlyBanner"); if (oldBan) oldBan.remove();
+
   const cont = document.getElementById("questionsContainer");
   cont.innerHTML = "";
   A[key].q.forEach(q => {
@@ -557,12 +776,20 @@ function updateAreaScore() {
 }
 
 function showView(v) {
+  if (currentUser && currentUser.role === "viewer" && v === "select") {
+    v = "history";
+  }
   document.getElementById("view-select").classList.toggle("on", v === "select");
   document.getElementById("view-checklist").classList.toggle("on", v === "checklist");
   document.getElementById("view-history").classList.toggle("on", v === "history");
-  document.getElementById("btnNova").classList.toggle("on", v === "select" || v === "checklist");
+  const btnNova = document.getElementById("btnNova");
+  if (btnNova) btnNova.classList.toggle("on", v === "select" || v === "checklist");
   document.getElementById("btnHist").classList.toggle("on", v === "history");
-  if (v === "history") renderHistory();
+  if (v === "history") {
+    readOnly = false;
+    document.body.classList.remove("readonly-mode");
+    renderHistory();
+  }
 }
 
 function getHistory() {
@@ -589,6 +816,8 @@ function validateJustifications() {
 
 function saveToHistory() {
   if (!currentArea) return;
+  if (!isMaster()) { alert("Somente o perfil Qualidade pode salvar relatórios."); return; }
+  if (readOnly) { alert("Modo somente leitura."); return; }
   if (!validateJustifications()) return;
   const s = calc(currentArea);
   if (s.an === 0) { alert("Responda pelo menos um item antes de salvar."); return; }
@@ -623,31 +852,50 @@ function saveToHistory() {
 }
 
 function renderHistory() {
-  const list = getHistory();
+  let list = getHistory();
+  // Viewer: só a própria área
+  if (currentUser && currentUser.role === "viewer") {
+    list = list.filter(h => h.area === currentUser.area);
+  } else {
+    const f = document.getElementById("histAreaFilter");
+    if (f && f.value) list = list.filter(h => h.area === f.value);
+  }
   const el = document.getElementById("histList");
   if (!list.length) {
-    el.innerHTML = '<div class="empty">Nenhum relatório salvo ainda.</div>';
+    el.innerHTML = '<div class="empty">Nenhum relatório salvo' +
+      (currentUser && currentUser.role === "viewer" ? " para a sua área" : "") +
+      '.</div>';
     return;
   }
-  el.innerHTML = list.map(h => `
+  el.innerHTML = list.map(h => {
+    const nc = (h.answered != null && h.conforme != null)
+      ? Math.max(0, (h.answered - h.conforme))
+      : null;
+    const canEdit = isMaster();
+    return `
     <div class="hist-card">
       <div class="info">
         <strong>${h.areaName}</strong>
-        <span>${h.dealer} • ${h.date || "—"} • Auditor: ${h.auditor}</span>
+        <span>${h.dealer || "—"} • ${h.date || "—"} • Auditor: ${h.auditor || "—"}</span>
+        ${nc != null ? `<div class="nc">${nc} não conforme${nc === 1 ? "" : "s"} · ${h.conforme || 0} conforme${(h.conforme||0)===1?"":"s"}</div>` : ""}
       </div>
       <div class="score">${h.score != null ? h.score + "%" : "—"}</div>
       <div class="actions">
-        <button class="btn-view" onclick="loadFromHistory(${h.id})">Editar</button>
-        <button class="btn-del" onclick="deleteHistory(${h.id})">Excluir</button>
+        <button class="btn-view" onclick="loadFromHistory(${h.id})">${canEdit ? "Editar" : "Visualizar"}</button>
+        ${canEdit ? `<button class="btn-del" onclick="deleteHistory(${h.id})">Excluir</button>` : ""}
       </div>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
 }
 
 function loadFromHistory(id) {
   const list = getHistory();
   const h = list.find(x => x.id === id);
   if (!h) return;
+  if (!canAccessArea(h.area)) {
+    alert("Você não tem permissão para acessar relatórios desta área.");
+    return;
+  }
   document.getElementById("auditorName").value = h.auditor || "Luan Mota";
   document.getElementById("dealerName").value = h.dealer || "";
   document.getElementById("auditDate").value = h.date || "";
@@ -655,20 +903,40 @@ function loadFromHistory(id) {
   Object.keys(ans).forEach(k => { if (k.startsWith(h.area + "_")) delete ans[k]; });
   if (h.answers) Object.assign(ans, h.answers);
   currentArea = h.area;
-  editingHistoryId = h.id;
-  document.getElementById("areaTitle").textContent = h.areaName + " (editando)";
+
+  readOnly = !isMaster();
+  document.body.classList.toggle("readonly-mode", readOnly);
+
+  if (readOnly) {
+    editingHistoryId = null;
+    document.getElementById("areaTitle").textContent = h.areaName + " (somente leitura)";
+  } else {
+    editingHistoryId = h.id;
+    document.getElementById("areaTitle").textContent = h.areaName + " (editando)";
+  }
   renderQuestions(h.area);
   updateAreaScore();
+  // banner leitura
+  const cont = document.getElementById("questionsContainer");
+  if (readOnly && cont) {
+    const ban = document.createElement("div");
+    ban.className = "readonly-banner";
+    ban.id = "readonlyBanner";
+    ban.textContent = "Modo visualização — você pode consultar e gerar o PDF, sem alterar respostas.";
+    cont.insertBefore(ban, cont.firstChild);
+  }
   showView("checklist");
 }
 
 function deleteHistory(id) {
+  if (!isMaster()) { alert("Somente o perfil Qualidade pode excluir relatórios."); return; }
   if (!confirm("Excluir este relatório do histórico?")) return;
   saveHistory(getHistory().filter(x => x.id !== id));
   renderHistory();
 }
 
 function resetCurrent() {
+  if (!isMaster() || readOnly) { alert("Modo somente leitura."); return; }
   if (!currentArea || !confirm("Limpar todas as respostas desta área?")) return;
   Object.keys(ans).forEach(k => { if (k.startsWith(currentArea + "_")) delete ans[k]; });
   editingHistoryId = null;
@@ -720,7 +988,8 @@ function addFooter(doc, pageNum, totalPages) {
 
 async function generatePDF() {
   if (!currentArea) return;
-  if (!validateJustifications()) return;
+  if (!canAccessArea(currentArea)) { alert("Sem permissão para esta área."); return; }
+  if (!readOnly && !validateJustifications()) return;
 
   const auditor = document.getElementById("auditorName").value.trim() || "Não informado";
   const dealer = document.getElementById("dealerName").value.trim() || "Não informado";
@@ -1053,6 +1322,26 @@ async function generatePDF() {
 
 // Inicialização
 initAreaCards();
+
+// Enter key no login
+document.getElementById("loginPass").addEventListener("keydown", function(e){
+  if (e.key === "Enter") doLogin();
+});
+document.getElementById("loginUser").addEventListener("keydown", function(e){
+  if (e.key === "Enter") document.getElementById("loginPass").focus();
+});
+
+// Sessão (sessionStorage): mantém logado ao recarregar a aba; ao fechar o navegador, pede login de novo
+(function boot(){
+  const s = loadSession();
+  if (s) {
+    currentUser = s;
+    enterApp();
+  } else {
+    document.getElementById("login-screen").classList.remove("hidden");
+    document.getElementById("app-root").classList.add("hidden");
+  }
+})();
 </script>
 </body>
 </html>
