@@ -6,8 +6,6 @@
 <title>Checklist Auditoria Interna ASEC - Carmak</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --p:#06402b;
@@ -288,10 +286,10 @@ body.viewer-mode .crono-edit-only{display:none !important}
     <h1>Checklist Auditoria ASEC</h1>
     <p class="sub">Acesso restrito · Uso interno Carmak</p>
     <div class="login-error" id="loginError">Usuário ou senha inválidos</div>
-    <label for="loginUser">E-mail</label>
-    <input type="email" id="loginUser" autocomplete="username" placeholder="seu@email.com">
+    <label for="loginUser">Usuário</label>
+    <input type="text" id="loginUser" autocomplete="username" placeholder="Seu usuário">
     <label for="loginPass">Senha</label>
-    <input type="password" id="loginPass" autocomplete="current-password" placeholder="Senha">
+    <input type="password" id="loginPass" autocomplete="current-password" placeholder="5 dígitos" maxlength="8" inputmode="numeric">
     <button type="button" class="btn-login" id="btnLogin" onclick="doLogin()">Entrar</button>
     <p class="login-foot">Carmak · Toyota Material Handling · Documento controlado</p>
   </div>
@@ -423,7 +421,7 @@ body.viewer-mode .crono-edit-only{display:none !important}
       </div>
     </div>
   </div>
-  <p class="crono-legend">Cores por área no calendário. Clique em um evento para editar. Somente Qualidade inclui ou remove datas. Cronograma ainda salvo neste navegador (próxima etapa: Supabase).</p>
+  <p class="crono-legend">Cores por área no calendário. Clique em um evento para editar. Somente Qualidade inclui ou remove datas. Dados salvos neste navegador.</p>
 </div>
 
 <div id="view-history" class="history-view">
@@ -887,92 +885,66 @@ function renderCrono() {
 }
 
 
-// ===== Supabase =====
-const SUPABASE_URL = "https://mhvmhynjmeachwfmtae.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1odm1oeW5qam1lYWNod2ZtdGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MjIyNzcsImV4cCI6MjEwMzI5ODI3N30.mVRUT3hDpVDp49NLF9zSH964m6hBQx6xv33UkbrytRM";
+const USERS = {
+  // Master
+  qualidade: { user: "Qualidade", pass: "90641", role: "master", area: null, label: "Qualidade (Master)" },
+  // Visualizadores por área (chave = área do objeto A)
+  rh: { user: "RH", pass: "18372", role: "viewer", area: "RH", label: "Recursos Humanos" },
+  seguranca: { user: "Seguranca", pass: "29483", role: "viewer", area: "Seg", label: "Segurança" },
+  posvenda: { user: "PosVenda", pass: "30594", role: "viewer", area: "Pos", label: "Pós Venda" },
+  oficina: { user: "Oficina", pass: "41605", role: "viewer", area: "Ofi", label: "Oficina" },
+  almoxarifado: { user: "Almoxarifado", pass: "52716", role: "viewer", area: "Alm", label: "Almoxarifado" }
+};
 
-let supabase = null;
-try {
-  if (!window.supabase || !window.supabase.createClient) {
-    console.error("Biblioteca Supabase não carregou. Verifique a conexão e o script CDN.");
-  } else {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
-} catch (e) {
-  console.error("Falha ao iniciar Supabase:", e);
-}
-
-let currentUser = null; // { id, email, role, area, label }
+const SESSION_KEY = "asec_session_v1";
+let currentUser = null; // { key, user, role, area, label }
 let readOnly = false;
 
-async function loadProfile(userId) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, role, area")
-    .eq("id", userId)
-    .single();
-  if (error || !data) {
-    console.error("Perfil não encontrado:", error);
-    return null;
+function findUser(username, password) {
+  const u = String(username || "").trim().toLowerCase();
+  const p = String(password || "").trim();
+  for (const [key, cfg] of Object.entries(USERS)) {
+    if (cfg.user.toLowerCase() === u && cfg.pass === p) {
+      return { key, ...cfg };
+    }
   }
-  return {
-    id: data.id,
-    email: data.email,
-    role: data.role,
-    area: data.area,
-    label: data.full_name || data.email
-  };
+  return null;
 }
 
-async function doLogin() {
-  const email = document.getElementById("loginUser").value.trim();
-  const password = document.getElementById("loginPass").value;
-  const err = document.getElementById("loginError");
-  err.classList.remove("show");
-
-  if (!supabase) {
-    err.textContent = "Supabase não carregou. Atualize a página (Ctrl+F5) ou verifique a internet.";
-    err.classList.add("show");
-    return;
-  }
-
-  if (!email || !password) {
-    err.textContent = "Informe e-mail e senha";
-    err.classList.add("show");
-    return;
-  }
-
-  const btn = document.getElementById("btnLogin");
-  if (btn) { btn.disabled = true; btn.textContent = "Entrando..."; }
-
+function saveSession(u) {
+  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ user: u.user, key: u.key })); } catch(e) {}
+}
+function clearSession() {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+}
+function loadSession() {
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      err.textContent = "Usuário ou senha inválidos";
-      err.classList.add("show");
-      return;
-    }
-    const profile = await loadProfile(data.user.id);
-    if (!profile) {
-      err.textContent = "Login ok, mas perfil não encontrado na tabela profiles";
-      err.classList.add("show");
-      await supabase.auth.signOut();
-      return;
-    }
-    currentUser = profile;
-    enterApp();
-  } catch (e) {
-    console.error(e);
-    err.textContent = "Erro de conexão. Tente de novo.";
-    err.classList.add("show");
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = "Entrar"; }
-  }
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || !s.user) return null;
+    return findUser(s.user, USERS[s.key] ? USERS[s.key].pass : "");
+  } catch(e) { return null; }
 }
 
-async function doLogout() {
-  try { await supabase.auth.signOut(); } catch (e) {}
+function doLogin() {
+  const u = document.getElementById("loginUser").value;
+  const p = document.getElementById("loginPass").value;
+  const err = document.getElementById("loginError");
+  const found = findUser(u, p);
+  if (!found) {
+    err.classList.add("show");
+    return;
+  }
+  err.classList.remove("show");
+  currentUser = found;
+  saveSession(found);
+  enterApp();
+}
+
+function doLogout() {
   currentUser = null;
+  clearSession();
   readOnly = false;
   document.body.classList.remove("readonly-mode", "viewer-mode");
   document.getElementById("app-root").classList.add("hidden");
@@ -984,11 +956,12 @@ async function doLogout() {
 function enterApp() {
   document.getElementById("login-screen").classList.add("hidden");
   document.getElementById("app-root").classList.remove("hidden");
-  document.getElementById("userChip").textContent = currentUser.label || currentUser.email || "—";
+  document.getElementById("userChip").textContent = currentUser.label || currentUser.user;
 
   const isViewer = currentUser.role === "viewer";
   document.body.classList.toggle("viewer-mode", isViewer);
 
+  // Filtro de área: master vê; viewer esconde
   const filterBar = document.getElementById("histFilterBar");
   if (filterBar) filterBar.style.display = isViewer ? "none" : "flex";
   populateHistFilter();
@@ -1303,41 +1276,12 @@ function showView(v) {
   }
 }
 
-function mapAuditRow(row) {
-  return {
-    id: row.id,
-    area: row.area,
-    areaName: row.area_name,
-    auditor: row.auditor,
-    dealer: row.dealer,
-    date: row.audit_date,
-    notes: row.notes,
-    score: row.score != null ? Number(row.score) : null,
-    answered: row.answered,
-    total: row.total,
-    conforme: row.conforme,
-    answers: row.answers || {}
-  };
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem("asec_history") || "[]"); } catch { return []; }
 }
-
-async function getHistory() {
-  try {
-    const { data, error } = await supabase
-      .from("auditorias")
-      .select("id, area, area_name, dealer, audit_date, auditor, notes, score, answered, total, conforme, answers, created_at")
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (error) {
-      console.error(error);
-      alert("Erro ao carregar histórico: " + (error.message || error));
-      return [];
-    }
-    return (data || []).map(mapAuditRow);
-  } catch (e) {
-    console.error(e);
-    alert("Erro ao carregar histórico.");
-    return [];
-  }
+function saveHistory(list) {
+  try { localStorage.setItem("asec_history", JSON.stringify(list)); return true; }
+  catch (e) { alert("Armazenamento local cheio. Gere o PDF e exclua relatórios antigos."); return false; }
 }
 
 function validateJustifications() {
@@ -1354,7 +1298,7 @@ function validateJustifications() {
   return true;
 }
 
-async function saveToHistory() {
+function saveToHistory() {
   if (!currentArea) return;
   if (!isMaster()) { alert("Somente o perfil Qualidade pode salvar relatórios."); return; }
   if (readOnly) { alert("Modo somente leitura."); return; }
@@ -1362,45 +1306,32 @@ async function saveToHistory() {
   const s = calc(currentArea);
   if (s.an === 0) { alert("Responda pelo menos um item antes de salvar."); return; }
 
-  const payload = {
+  const entry = {
+    id: editingHistoryId || Date.now(),
     area: currentArea,
-    area_name: A[currentArea].n,
+    areaName: A[currentArea].n,
     auditor: document.getElementById("auditorName").value.trim(),
-    dealer: document.getElementById("dealerName").value.trim() || null,
-    audit_date: document.getElementById("auditDate").value || null,
-    notes: document.getElementById("generalNotes").value.trim() || null,
+    dealer: document.getElementById("dealerName").value.trim(),
+    date: document.getElementById("auditDate").value,
+    notes: document.getElementById("generalNotes").value.trim(),
     score: s.p,
     answered: s.an,
     total: s.t,
     conforme: s.ok,
     answers: JSON.parse(JSON.stringify(
       Object.fromEntries(Object.entries(ans).filter(([k]) => k.startsWith(currentArea + "_")))
-    )),
-    created_by: currentUser && currentUser.id ? currentUser.id : null,
-    updated_at: new Date().toISOString()
+    ))
   };
 
-  try {
-    if (editingHistoryId) {
-      const { error } = await supabase
-        .from("auditorias")
-        .update(payload)
-        .eq("id", editingHistoryId);
-      if (error) throw error;
-      alert("Relatório atualizado!");
-    } else {
-      const { data, error } = await supabase
-        .from("auditorias")
-        .insert(payload)
-        .select("id")
-        .single();
-      if (error) throw error;
-      editingHistoryId = data.id;
-      alert("Relatório salvo no histórico!");
-    }
-  } catch (e) {
-    console.error(e);
-    alert("Erro ao salvar: " + (e.message || e));
+  const list = getHistory();
+  if (editingHistoryId) {
+    const idx = list.findIndex(x => x.id === editingHistoryId);
+    if (idx >= 0) list[idx] = entry; else list.unshift(entry);
+  } else list.unshift(entry);
+  if (list.length > 80) list.pop();
+  if (saveHistory(list)) {
+    alert(editingHistoryId ? "Relatório atualizado!" : "Relatório salvo no histórico!");
+    editingHistoryId = entry.id;
   }
 }
 
@@ -1461,13 +1392,10 @@ function populateHistFilters(list) {
   }
 }
 
-async function renderHistory() {
-  const el = document.getElementById("histList");
-  if (el) el.innerHTML = '<div class="empty">Carregando...</div>';
-
-  let list = await getHistory();
+function renderHistory() {
+  let list = getHistory();
   populateHistFilters(list);
-  // Viewer: RLS já filtra; reforço no cliente
+  // Viewer: só a própria área
   if (currentUser && currentUser.role === "viewer") {
     list = list.filter(h => h.area === currentUser.area);
   }
@@ -1478,6 +1406,7 @@ async function renderHistory() {
   const fDealer = document.getElementById("histDealerFilter");
   if (fDealer && fDealer.value) list = list.filter(h => h.dealer === fDealer.value);
 
+  const el = document.getElementById("histList");
   if (!list.length) {
     el.innerHTML = '<div class="empty">Nenhum relatório salvo' +
       (currentUser && currentUser.role === "viewer" ? " para a sua área" : "") +
@@ -1505,73 +1434,57 @@ async function renderHistory() {
   }).join("");
 }
 
-async function loadFromHistory(id) {
-  try {
-    const { data, error } = await supabase
-      .from("auditorias")
-      .select("*")
-      .eq("id", id)
-      .single();
-    if (error || !data) {
-      alert("Relatório não encontrado.");
-      return;
-    }
-    const h = mapAuditRow(data);
-    if (!canAccessArea(h.area)) {
-      alert("Você não tem permissão para acessar relatórios desta área.");
-      return;
-    }
-    document.getElementById("auditorName").value = h.auditor || "Luan Mota";
-    document.getElementById("dealerName").value = h.dealer || "";
-    document.getElementById("auditDate").value = h.date || "";
-    document.getElementById("generalNotes").value = h.notes || "";
-    Object.keys(ans).forEach(k => { if (k.startsWith(h.area + "_")) delete ans[k]; });
-    if (h.answers) Object.assign(ans, h.answers);
-    currentArea = h.area;
-
-    readOnly = !isMaster();
-    document.body.classList.toggle("readonly-mode", readOnly);
-
-    ["auditorName","dealerName","auditDate","generalNotes"].forEach(fid => {
-      const el = document.getElementById(fid);
-      if (el) el.disabled = readOnly;
-    });
-
-    if (readOnly) {
-      editingHistoryId = null;
-      document.getElementById("areaTitle").textContent = h.areaName + " (somente leitura)";
-    } else {
-      editingHistoryId = h.id;
-      document.getElementById("areaTitle").textContent = h.areaName + " (editando)";
-    }
-    renderQuestions(h.area);
-    updateAreaScore();
-    const cont = document.getElementById("questionsContainer");
-    if (readOnly && cont) {
-      const ban = document.createElement("div");
-      ban.className = "readonly-banner";
-      ban.id = "readonlyBanner";
-      ban.textContent = "Modo visualização — você pode consultar e gerar o PDF, sem alterar respostas.";
-      cont.insertBefore(ban, cont.firstChild);
-    }
-    showView("checklist");
-  } catch (e) {
-    console.error(e);
-    alert("Erro ao abrir relatório.");
+function loadFromHistory(id) {
+  const list = getHistory();
+  const h = list.find(x => x.id === id);
+  if (!h) return;
+  if (!canAccessArea(h.area)) {
+    alert("Você não tem permissão para acessar relatórios desta área.");
+    return;
   }
+  document.getElementById("auditorName").value = h.auditor || "Luan Mota";
+  document.getElementById("dealerName").value = h.dealer || "";
+  document.getElementById("auditDate").value = h.date || "";
+  document.getElementById("generalNotes").value = h.notes || "";
+  Object.keys(ans).forEach(k => { if (k.startsWith(h.area + "_")) delete ans[k]; });
+  if (h.answers) Object.assign(ans, h.answers);
+  currentArea = h.area;
+
+  readOnly = !isMaster();
+  document.body.classList.toggle("readonly-mode", readOnly);
+
+  // Trava campos de cabeçalho em modo leitura
+  ["auditorName","dealerName","auditDate","generalNotes"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = readOnly;
+  });
+
+  if (readOnly) {
+    editingHistoryId = null;
+    document.getElementById("areaTitle").textContent = h.areaName + " (somente leitura)";
+  } else {
+    editingHistoryId = h.id;
+    document.getElementById("areaTitle").textContent = h.areaName + " (editando)";
+  }
+  renderQuestions(h.area);
+  updateAreaScore();
+  // banner leitura
+  const cont = document.getElementById("questionsContainer");
+  if (readOnly && cont) {
+    const ban = document.createElement("div");
+    ban.className = "readonly-banner";
+    ban.id = "readonlyBanner";
+    ban.textContent = "Modo visualização — você pode consultar e gerar o PDF, sem alterar respostas.";
+    cont.insertBefore(ban, cont.firstChild);
+  }
+  showView("checklist");
 }
 
-async function deleteHistory(id) {
+function deleteHistory(id) {
   if (!isMaster()) { alert("Somente o perfil Qualidade pode excluir relatórios."); return; }
   if (!confirm("Excluir este relatório do histórico?")) return;
-  try {
-    const { error } = await supabase.from("auditorias").delete().eq("id", id);
-    if (error) throw error;
-    await renderHistory();
-  } catch (e) {
-    console.error(e);
-    alert("Erro ao excluir: " + (e.message || e));
-  }
+  saveHistory(getHistory().filter(x => x.id !== id));
+  renderHistory();
 }
 
 function resetCurrent() {
@@ -1970,23 +1883,16 @@ document.getElementById("loginUser").addEventListener("keydown", function(e){
   if (e.key === "Enter") document.getElementById("loginPass").focus();
 });
 
-// Sessão Supabase: restaura login se ainda válido
-(async function boot(){
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session && session.user) {
-      const profile = await loadProfile(session.user.id);
-      if (profile) {
-        currentUser = profile;
-        enterApp();
-        return;
-      }
-    }
-  } catch (e) {
-    console.warn("Sessão não restaurada", e);
+// Sessão (sessionStorage): mantém logado ao recarregar a aba; ao fechar o navegador, pede login de novo
+(function boot(){
+  const s = loadSession();
+  if (s) {
+    currentUser = s;
+    enterApp();
+  } else {
+    document.getElementById("login-screen").classList.remove("hidden");
+    document.getElementById("app-root").classList.add("hidden");
   }
-  document.getElementById("login-screen").classList.remove("hidden");
-  document.getElementById("app-root").classList.add("hidden");
 })();
 </script>
 </body>
