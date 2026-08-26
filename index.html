@@ -422,7 +422,7 @@ body.viewer-mode .crono-edit-only{display:none !important}
       </div>
     </div>
   </div>
-  <p class="crono-legend">Cores por área no calendário. Clique em um evento para editar. Somente Qualidade inclui ou remove datas. Cronograma ainda salvo neste navegador (próxima etapa: Supabase).</p>
+  <p class="crono-legend">Cores por área no calendário. Clique em um evento para editar. Somente Qualidade inclui ou remove datas. Dados do cronograma salvos no Supabase (compartilhados entre usuários).</p>
 </div>
 
 <div id="view-history" class="history-view">
@@ -835,7 +835,6 @@ const ans = {};
 /* ===================== AUTH ===================== */
 
 /* ===================== Cronograma ===================== */
-const CRONO_KEY = "asec_cronograma_v1";
 const FOCAIS = {
   "Matriz - São Leopoldo RS": {
     RH: "Siluana Scharlau", Seg: "Thais Raupp", Pos: "Vagner Dutra",
@@ -858,21 +857,41 @@ let cronoRows = [];
 let cronoDealerFilter = "";
 let cronoYear = new Date().getFullYear();
 let cronoMonth = new Date().getMonth(); // 0-11
+let cronoLoading = false;
 
-function loadCrono() {
-  try {
-    const raw = localStorage.getItem(CRONO_KEY);
-    if (raw) {
-      const p = JSON.parse(raw);
-      if (Array.isArray(p)) { cronoRows = p.filter(r => r && r.date); return; }
-    }
-  } catch(e) {}
-  cronoRows = [];
+function mapCronoRow(row) {
+  return {
+    id: row.id,
+    dealer: row.dealer,
+    area: row.area,
+    focal: row.focal || "",
+    date: row.scheduled_date,
+    time: row.scheduled_time ? String(row.scheduled_time).slice(0, 5) : "",
+    mode: row.mode || "Presencial",
+    notes: row.notes || ""
+  };
 }
 
-function persistCrono() {
-  try { localStorage.setItem(CRONO_KEY, JSON.stringify(cronoRows)); }
-  catch(e) { alert("Não foi possível salvar: " + e.message); }
+async function loadCrono() {
+  try {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("cronograma")
+        .select("id, dealer, area, focal, scheduled_date, scheduled_time, mode, notes")
+        .order("scheduled_date", { ascending: true });
+      if (error) throw error;
+      cronoRows = (data || []).map(mapCronoRow).filter(r => r.date);
+      return;
+    }
+    var data = await restQuery(
+      "/rest/v1/cronograma?select=id,dealer,area,focal,scheduled_date,scheduled_time,mode,notes&order=scheduled_date.asc"
+    );
+    cronoRows = (data || []).map(mapCronoRow).filter(r => r.date);
+  } catch (e) {
+    console.error(e);
+    cronoRows = [];
+    alert("Erro ao carregar cronograma: " + (e.message || e));
+  }
 }
 
 function visibleCronoRows() {
@@ -952,47 +971,87 @@ function editCronoEvent(id) {
   document.querySelector(".crono-form")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-function submitCronoForm() {
+async function submitCronoForm() {
   if (!isMaster()) { alert("Somente Qualidade pode editar o cronograma."); return; }
   const dealer = document.getElementById("cronoF_dealer").value;
   const area = document.getElementById("cronoF_area").value;
   const focal = document.getElementById("cronoF_focal").value.trim();
   const date = document.getElementById("cronoF_date").value;
-  const time = document.getElementById("cronoF_time").value || "";
+  const time = document.getElementById("cronoF_time").value || null;
   const mode = document.getElementById("cronoF_mode").value;
   const notes = document.getElementById("cronoF_notes").value.trim();
   if (!dealer || !area || !date) {
     alert("Preencha dealer, área e data.");
     return;
   }
+  const payload = {
+    dealer: dealer,
+    area: area,
+    focal: focal || null,
+    scheduled_date: date,
+    scheduled_time: time || null,
+    mode: mode || "Presencial",
+    notes: notes || null,
+    created_by: currentUser && currentUser.id ? currentUser.id : null
+  };
   const editId = document.getElementById("cronoEditId").value;
-  if (editId) {
-    const idx = cronoRows.findIndex(r => r.id === editId);
-    if (idx >= 0) {
-      cronoRows[idx] = { id: editId, dealer, area, focal, date, time, mode, notes };
+  try {
+    if (supabase) {
+      if (editId) {
+        const { error } = await supabase.from("cronograma").update(payload).eq("id", editId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("cronograma").insert(payload);
+        if (error) throw error;
+      }
+    } else {
+      if (editId) {
+        await restQuery("/rest/v1/cronograma?id=eq." + encodeURIComponent(editId), {
+          method: "PATCH",
+          body: payload
+        });
+      } else {
+        await restQuery("/rest/v1/cronograma", {
+          method: "POST",
+          body: payload,
+          prefer: "return=minimal"
+        });
+      }
     }
-  } else {
-    cronoRows.push({
-      id: "c_" + Date.now().toString(36),
-      dealer, area, focal, date, time, mode, notes
-    });
+    resetCronoForm();
+    await renderCrono();
+  } catch (e) {
+    console.error(e);
+    alert("Erro ao salvar no cronograma: " + (e.message || e));
   }
-  persistCrono();
-  resetCronoForm();
-  renderCrono();
 }
 
-function delCronoRow(id) {
+async function delCronoRow(id) {
   if (!isMaster()) return;
   if (!confirm("Remover esta auditoria do cronograma?")) return;
-  cronoRows = cronoRows.filter(r => r.id !== id);
-  persistCrono();
-  if (document.getElementById("cronoEditId")?.value === id) resetCronoForm();
-  renderCrono();
+  try {
+    if (supabase) {
+      const { error } = await supabase.from("cronograma").delete().eq("id", id);
+      if (error) throw error;
+    } else {
+      await restQuery("/rest/v1/cronograma?id=eq." + encodeURIComponent(id), { method: "DELETE" });
+    }
+    if (document.getElementById("cronoEditId")?.value === id) resetCronoForm();
+    await renderCrono();
+  } catch (e) {
+    console.error(e);
+    alert("Erro ao remover: " + (e.message || e));
+  }
 }
 
-function renderCrono() {
-  loadCrono();
+async function renderCrono() {
+  if (cronoLoading) return;
+  cronoLoading = true;
+  try {
+    await loadCrono();
+  } finally {
+    cronoLoading = false;
+  }
   fillCronoAreaSelect();
 
   // dealer tabs
