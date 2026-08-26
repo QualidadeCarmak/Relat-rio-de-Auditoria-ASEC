@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --p:#06402b;
@@ -889,7 +890,17 @@ function renderCrono() {
 // ===== Supabase =====
 const SUPABASE_URL = "https://mhvmhynjmeachwfmtae.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1odm1oeW5qam1lYWNod2ZtdGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MjIyNzcsImV4cCI6MjEwMzI5ODI3N30.mVRUT3hDpVDp49NLF9zSH964m6hBQx6xv33UkbrytRM";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let supabase = null;
+try {
+  if (!window.supabase || !window.supabase.createClient) {
+    console.error("Biblioteca Supabase não carregou. Verifique a conexão e o script CDN.");
+  } else {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch (e) {
+  console.error("Falha ao iniciar Supabase:", e);
+}
 
 let currentUser = null; // { id, email, role, area, label }
 let readOnly = false;
@@ -918,6 +929,12 @@ async function doLogin() {
   const password = document.getElementById("loginPass").value;
   const err = document.getElementById("loginError");
   err.classList.remove("show");
+
+  if (!supabase) {
+    err.textContent = "Supabase não carregou. Atualize a página (Ctrl+F5) ou verifique a internet.";
+    err.classList.add("show");
+    return;
+  }
 
   if (!email || !password) {
     err.textContent = "Informe e-mail e senha";
