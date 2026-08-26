@@ -6,8 +6,7 @@
 <title>Checklist Auditoria Interna ASEC - Carmak</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
 <style>
 :root{
   --p:#06402b;
@@ -463,15 +462,24 @@ var supabase = null;
 var currentUser = null;
 var readOnly = false;
 
-try {
-  if (window.supabase && window.supabase.createClient) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else {
-    console.error("CDN Supabase ausente");
+function initSupabaseClient() {
+  try {
+    var lib = window.supabase || window.supabaseJs || null;
+    var createClient = null;
+    if (lib && typeof lib.createClient === "function") createClient = lib.createClient;
+    else if (typeof window.createClient === "function") createClient = window.createClient;
+    if (!createClient) {
+      console.error("createClient não encontrado. window.supabase =", window.supabase);
+      return null;
+    }
+    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (e) {
+    console.error("Falha createClient", e);
+    return null;
   }
-} catch (e) {
-  console.error("Falha createClient", e);
 }
+
+supabase = initSupabaseClient();
 
 async function loadProfile(userId) {
   var res = await supabase.from("profiles").select("id, email, full_name, role, area").eq("id", userId).single();
@@ -498,7 +506,15 @@ async function doLogin() {
   }
 
   if (!supabase) {
-    showErr("Supabase não carregou. Atualize a página (Ctrl+F5).");
+    supabase = initSupabaseClient();
+  }
+  if (!supabase) {
+    showErr("Supabase não carregou. Atualize a página (Ctrl+F5) e veja o Console (F12).");
+    console.error("Diagnóstico:", {
+      hasWindowSupabase: !!window.supabase,
+      keys: window.supabase ? Object.keys(window.supabase) : [],
+      typeofCreate: window.supabase ? typeof window.supabase.createClient : "n/a"
+    });
     return;
   }
   if (!email || !password) {
