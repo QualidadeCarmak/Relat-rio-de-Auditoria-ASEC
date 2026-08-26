@@ -272,6 +272,26 @@ body.viewer-mode #btnNova{display:none !important}
 .crono-legend{font-size:.8rem;color:var(--m);margin-top:.75rem}
 body.viewer-mode .crono-edit-only{display:none !important}
 
+/* ===== Rascunho ===== */
+.draft-chip{
+  display:inline-flex;align-items:center;gap:.4rem;font-size:.78rem;font-weight:600;
+  background:#fff6df;color:#8a6b00;border:1px solid #e0c56a;border-radius:20px;
+  padding:.3rem .75rem;margin-left:.25rem
+}
+.draft-chip.ok{background:#e4f5ee;color:#2f6b4f;border-color:#b8e0cc}
+.draft-chip.warn{background:#fbeae8;color:#c6483e;border-color:#f0c9c5}
+.draft-banner{
+  background:#eef6ff;border:1px solid #b6d4fe;color:#0b3d91;
+  padding:.65rem 1rem;border-radius:10px;margin-bottom:1rem;font-size:.88rem;
+  display:flex;flex-wrap:wrap;align-items:center;gap:.75rem
+}
+.draft-banner button{
+  background:var(--p);color:#fff;border:none;border-radius:8px;padding:.35rem .75rem;
+  font-weight:600;font-size:.82rem;cursor:pointer
+}
+.draft-banner button.sec{background:#fff;color:var(--p);border:1px solid var(--b)}
+
+
 
 
 
@@ -340,6 +360,7 @@ body.viewer-mode .crono-edit-only{display:none !important}
 <button onclick="showView('select')">← Voltar</button>
 <h2 id="areaTitle">Área</h2>
 <div class="score-pill" id="areaScore">—</div>
+<span class="draft-chip" id="draftChip" style="display:none" title="Rascunho local no aparelho">Rascunho</span>
 </div>
 <div id="questionsContainer"></div>
 <div class="act">
@@ -597,6 +618,7 @@ async function doLogin() {
     currentUser = profile;
     if (typeof enterApp === "function") {
       enterApp();
+      setTimeout(function(){ offerRestoreDraftOnEnter(); }, 400);
     } else {
       showErr("App principal não carregou (erro no script). Veja o Console (F12).");
       console.error("enterApp não definido");
@@ -831,6 +853,212 @@ const DESC = {
 let currentArea = null;
 let editingHistoryId = null;
 const ans = {};
+
+/* ===================== RASCUNHO AUTOMÁTICO (IndexedDB) ===================== */
+const DRAFT_DB_NAME = "carmak_asec_draft_v1";
+const DRAFT_STORE = "drafts";
+const DRAFT_KEY = "current";
+let _draftTimer = null;
+let _draftSaving = false;
+
+function openDraftDB() {
+  return new Promise((resolve, reject) => {
+    try {
+      const req = indexedDB.open(DRAFT_DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(DRAFT_STORE)) db.createObjectStore(DRAFT_STORE);
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error("IndexedDB indisponível"));
+    } catch (e) { reject(e); }
+  });
+}
+function idbPut(value) {
+  return openDraftDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(DRAFT_STORE, "readwrite");
+    tx.objectStore(DRAFT_STORE).put(value, DRAFT_KEY);
+    tx.oncomplete = () => { db.close(); resolve(true); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  }));
+}
+function idbGet() {
+  return openDraftDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(DRAFT_STORE, "readonly");
+    const req = tx.objectStore(DRAFT_STORE).get(DRAFT_KEY);
+    req.onsuccess = () => { db.close(); resolve(req.result || null); };
+    req.onerror = () => { db.close(); reject(req.error); };
+  }));
+}
+function idbClear() {
+  return openDraftDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(DRAFT_STORE, "readwrite");
+    tx.objectStore(DRAFT_STORE).delete(DRAFT_KEY);
+    tx.oncomplete = () => { db.close(); resolve(true); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  })).catch(() => false);
+}
+function draftMeta() {
+  return {
+    auditor: (document.getElementById("auditorName") || {}).value || "",
+    dealer: (document.getElementById("dealerName") || {}).value || "",
+    date: (document.getElementById("auditDate") || {}).value || "",
+    notes: (document.getElementById("generalNotes") || {}).value || ""
+  };
+}
+function buildDraftPayload() {
+  if (!currentArea || readOnly) return null;
+  const areaAns = Object.fromEntries(
+    Object.entries(ans).filter(([k]) => k.startsWith(currentArea + "_"))
+  );
+  const hasContent = Object.keys(areaAns).some(k => {
+    const a = areaAns[k];
+    return a && (a.s || (a.just && String(a.just).trim()) || (a.imgs && a.imgs.length));
+  });
+  if (!hasContent && !draftMeta().notes) return null;
+  return {
+    v: 1,
+    savedAt: new Date().toISOString(),
+    area: currentArea,
+    areaName: (A[currentArea] && A[currentArea].n) || currentArea,
+    meta: draftMeta(),
+    answers: areaAns,
+    editingHistoryId: editingHistoryId || null
+  };
+}
+function setDraftChip(state, text) {
+  const el = document.getElementById("draftChip");
+  if (!el) return;
+  if (!state) { el.style.display = "none"; return; }
+  el.style.display = "inline-flex";
+  el.className = "draft-chip" + (state === "ok" ? " ok" : state === "warn" ? " warn" : "");
+  el.textContent = text || "Rascunho";
+}
+function formatDraftTime(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch (e) { return ""; }
+}
+async function saveDraftNow() {
+  if (typeof isMaster === "function" && !isMaster()) return;
+  if (readOnly || !currentArea) return;
+  if (_draftSaving) return;
+  const payload = buildDraftPayload();
+  if (!payload) return;
+  _draftSaving = true;
+  setDraftChip("", "Salvando…");
+  try {
+    await idbPut(payload);
+    setDraftChip("ok", "Rascunho · " + formatDraftTime(payload.savedAt));
+  } catch (e) {
+    console.warn("Falha ao salvar rascunho", e);
+    try {
+      const slim = JSON.parse(JSON.stringify(payload));
+      Object.keys(slim.answers || {}).forEach(k => {
+        if (slim.answers[k] && slim.answers[k].imgs) slim.answers[k].imgs = [];
+      });
+      slim.photosStripped = true;
+      await idbPut(slim);
+      setDraftChip("warn", "Rascunho (sem fotos) · " + formatDraftTime(slim.savedAt));
+    } catch (e2) {
+      setDraftChip("warn", "Rascunho falhou");
+    }
+  } finally {
+    _draftSaving = false;
+  }
+}
+function scheduleDraftSave(delay) {
+  if (typeof isMaster === "function" && !isMaster()) return;
+  if (readOnly || !currentArea) return;
+  clearTimeout(_draftTimer);
+  _draftTimer = setTimeout(() => { saveDraftNow(); }, delay == null ? 800 : delay);
+}
+async function clearDraft() {
+  clearTimeout(_draftTimer);
+  try { await idbClear(); } catch (e) {}
+  setDraftChip(null);
+}
+async function getDraft() {
+  try { return await idbGet(); } catch (e) { return null; }
+}
+function applyDraft(d) {
+  if (!d || !d.area || !A[d.area]) return false;
+  currentArea = d.area;
+  editingHistoryId = d.editingHistoryId || null;
+  readOnly = false;
+  document.body.classList.remove("readonly-mode");
+  ["auditorName","dealerName","auditDate","generalNotes"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = false;
+  });
+  if (d.meta) {
+    if (d.meta.auditor != null) document.getElementById("auditorName").value = d.meta.auditor;
+    if (d.meta.dealer != null) document.getElementById("dealerName").value = d.meta.dealer;
+    if (d.meta.date != null) document.getElementById("auditDate").value = d.meta.date;
+    if (d.meta.notes != null) document.getElementById("generalNotes").value = d.meta.notes;
+  }
+  Object.keys(ans).forEach(k => { if (k.startsWith(d.area + "_")) delete ans[k]; });
+  if (d.answers) Object.assign(ans, d.answers);
+  document.getElementById("areaTitle").textContent = A[d.area].n + " (rascunho)";
+  renderQuestions(d.area);
+  updateAreaScore();
+  showView("checklist");
+  const when = formatDraftTime(d.savedAt);
+  setDraftChip(d.photosStripped ? "warn" : "ok", (d.photosStripped ? "Rascunho sem fotos · " : "Rascunho · ") + when);
+  const cont = document.getElementById("questionsContainer");
+  if (cont) {
+    const old = document.getElementById("draftBanner");
+    if (old) old.remove();
+    const ban = document.createElement("div");
+    ban.className = "draft-banner";
+    ban.id = "draftBanner";
+    ban.innerHTML = "<span>Continuando rascunho salvo em <b>" + when + "</b>" +
+      (d.photosStripped ? " (fotos não puderam ser guardadas no aparelho)." : ".") +
+      "</span>" +
+      '<button type="button" class="sec" onclick="discardDraftAndRestart()">Descartar rascunho</button>';
+    cont.insertBefore(ban, cont.firstChild);
+  }
+  return true;
+}
+async function discardDraftAndRestart() {
+  if (!confirm("Descartar o rascunho e limpar as respostas desta área?")) return;
+  const area = currentArea;
+  await clearDraft();
+  Object.keys(ans).forEach(k => { if (area && k.startsWith(area + "_")) delete ans[k]; });
+  editingHistoryId = null;
+  const ban = document.getElementById("draftBanner");
+  if (ban) ban.remove();
+  if (area) {
+    document.getElementById("areaTitle").textContent = A[area].n;
+    renderQuestions(area);
+    updateAreaScore();
+  }
+}
+async function offerRestoreDraftOnEnter() {
+  const d = await getDraft();
+  if (!d || !d.area || !A[d.area]) return;
+  // só sugere se master
+  if (typeof isMaster === "function" && !isMaster()) return;
+  const when = formatDraftTime(d.savedAt);
+  const name = d.areaName || d.area;
+  const dealer = (d.meta && d.meta.dealer) || "—";
+  const ok = confirm(
+    "Há um rascunho de auditoria em andamento:\\n\\n" +
+    "Área: " + name + "\\n" +
+    "Dealer: " + dealer + "\\n" +
+    "Salvo em: " + when + "\\n\\n" +
+    "Deseja continuar de onde parou?"
+  );
+  if (ok) applyDraft(d);
+  else if (confirm("Apagar este rascunho do aparelho?")) await clearDraft();
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") saveDraftNow();
+});
+window.addEventListener("pagehide", () => { saveDraftNow(); });
+
+
 
 /* ===================== AUTH ===================== */
 
@@ -1216,7 +1444,7 @@ function initAreaCards() {
   });
 }
 
-function startArea(key) {
+async function startArea(key) {
   if (!isMaster()) {
     alert("Apenas o perfil Qualidade pode iniciar novas auditorias.");
     showView("history");
@@ -1229,6 +1457,15 @@ function startArea(key) {
     alert("Preencha o Nome do Auditor e o Dealer / Filial antes de iniciar.");
     return;
   }
+  try {
+    const d = await getDraft();
+    if (d && d.area === key) {
+      const when = formatDraftTime(d.savedAt);
+      const ok = confirm("Existe rascunho desta área salvo em " + when + ".\n\nContinuar de onde parou?");
+      if (ok) { applyDraft(d); return; }
+      if (confirm("Apagar o rascunho antigo desta área?")) await clearDraft();
+    }
+  } catch (e) {}
   currentArea = key;
   editingHistoryId = null;
   readOnly = false;
@@ -1237,10 +1474,14 @@ function startArea(key) {
     const el = document.getElementById(id);
     if (el) el.disabled = false;
   });
+  Object.keys(ans).forEach(k => { if (k.startsWith(key + "_")) delete ans[k]; });
   document.getElementById("areaTitle").textContent = A[key].n;
+  const ban = document.getElementById("draftBanner");
+  if (ban) ban.remove();
   renderQuestions(key);
   updateAreaScore();
   showView("checklist");
+  setDraftChip(null);
 }
 
 function renderQuestions(key) {
@@ -1295,6 +1536,7 @@ function saveJust(k, i, val) {
   if (readOnly || (currentUser && currentUser.role === "viewer")) return;
   if (!ans[key]) ans[key] = { s: null, imgs: [], just: "" };
   ans[key].just = val;
+  scheduleDraftSave(1200);
 }
 
 function setA(k, i, s) {
@@ -1317,6 +1559,7 @@ function setA(k, i, s) {
     }
   }
   updateAreaScore();
+  scheduleDraftSave();
 }
 
 /* Compressão agressiva para WhatsApp / e-mail / Teams (PDF leve) */
@@ -1409,6 +1652,7 @@ async function hF(k, i, inp) {
   }
   inp.value = "";
   renderGallery(k, i);
+  scheduleDraftSave(400);
 }
 
 function renderGallery(k, i) {
@@ -1431,6 +1675,7 @@ function removeImg(k, i, idx) {
   if (!ans[key] || !ans[key].imgs) return;
   ans[key].imgs.splice(idx, 1);
   renderGallery(k, i);
+  scheduleDraftSave(400);
 }
 
 function openLightbox(k, i, idx) {
@@ -1573,12 +1818,12 @@ async function saveToHistory() {
       if (editingHistoryId) {
         const { error } = await supabase.from("auditorias").update(payload).eq("id", editingHistoryId);
         if (error) throw error;
-        alert("Relatório atualizado!");
+        await clearDraft(); alert("Relatório atualizado!");
       } else {
         const { data, error } = await supabase.from("auditorias").insert(payload).select("id").single();
         if (error) throw error;
         editingHistoryId = data.id;
-        alert("Relatório salvo no histórico!");
+        await clearDraft(); alert("Relatório salvo no histórico!");
       }
     } else {
       if (editingHistoryId) {
@@ -1586,7 +1831,7 @@ async function saveToHistory() {
           method: "PATCH",
           body: payload
         });
-        alert("Relatório atualizado!");
+        await clearDraft(); alert("Relatório atualizado!");
       } else {
         var rows = await restQuery("/rest/v1/auditorias", {
           method: "POST",
@@ -1594,7 +1839,7 @@ async function saveToHistory() {
           prefer: "return=representation"
         });
         if (rows && rows[0] && rows[0].id) editingHistoryId = rows[0].id;
-        alert("Relatório salvo no histórico!");
+        await clearDraft(); alert("Relatório salvo no histórico!");
       }
     }
   } catch (e) {
@@ -1789,6 +2034,10 @@ function resetCurrent() {
   if (!currentArea || !confirm("Limpar todas as respostas desta área?")) return;
   Object.keys(ans).forEach(k => { if (k.startsWith(currentArea + "_")) delete ans[k]; });
   editingHistoryId = null;
+  const ban = document.getElementById("draftBanner");
+  if (ban) ban.remove();
+  clearDraft();
+  document.getElementById("areaTitle").textContent = A[currentArea].n;
   renderQuestions(currentArea);
   updateAreaScore();
 }
@@ -2172,6 +2421,13 @@ async function generatePDF() {
 // Inicialização
 initAreaCards();
 
+["auditorName","dealerName","auditDate","generalNotes"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("change", () => scheduleDraftSave(1000));
+  if (el) el.addEventListener("input", () => scheduleDraftSave(1500));
+});
+
+
 // Enter key no login
 document.getElementById("loginPass").addEventListener("keydown", function(e){
   if (e.key === "Enter") doLogin();
@@ -2189,6 +2445,7 @@ document.getElementById("loginUser").addEventListener("keydown", function(e){
       if (profile) {
         currentUser = profile;
         enterApp();
+        setTimeout(function(){ offerRestoreDraftOnEnter(); }, 400);
         return;
       }
     }
