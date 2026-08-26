@@ -633,6 +633,42 @@ async function doLogout() {
   if (typeof showView === "function") showView("select");
 }
 
+
+function getAccessToken() {
+  if (sbSession && sbSession.access_token) return sbSession.access_token;
+  try { return localStorage.getItem("sb_access_token") || ""; } catch (e) { return ""; }
+}
+
+async function restQuery(path, options) {
+  options = options || {};
+  var token = getAccessToken();
+  var headers = {
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": "Bearer " + (token || SUPABASE_ANON_KEY),
+    "Accept": "application/json"
+  };
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+    headers["Prefer"] = options.prefer || "return=representation";
+  }
+  var res = await fetch(SUPABASE_URL + path, {
+    method: options.method || "GET",
+    headers: headers,
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+  var textBody = await res.text();
+  var data = null;
+  try { data = textBody ? JSON.parse(textBody) : null; } catch (e) { data = textBody; }
+  if (!res.ok) {
+    var msg = (data && (data.message || data.msg || data.error_description)) || ("HTTP " + res.status);
+    var err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
 function isMaster() {
   return currentUser && currentUser.role === "master";
 }
@@ -1409,20 +1445,26 @@ function mapAuditRow(row) {
 
 async function getHistory() {
   try {
-    const { data, error } = await supabase
-      .from("auditorias")
-      .select("id, area, area_name, dealer, audit_date, auditor, notes, score, answered, total, conforme, answers, created_at")
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (error) {
-      console.error(error);
-      alert("Erro ao carregar histórico: " + (error.message || error));
-      return [];
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("auditorias")
+        .select("id, area, area_name, dealer, audit_date, auditor, notes, score, answered, total, conforme, answers, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) {
+        console.error(error);
+        alert("Erro ao carregar histórico: " + (error.message || error));
+        return [];
+      }
+      return (data || []).map(mapAuditRow);
     }
+    // REST fallback
+    var q = "/rest/v1/auditorias?select=id,area,area_name,dealer,audit_date,auditor,notes,score,answered,total,conforme,answers,created_at&order=created_at.desc&limit=200";
+    var data = await restQuery(q);
     return (data || []).map(mapAuditRow);
   } catch (e) {
     console.error(e);
-    alert("Erro ao carregar histórico.");
+    alert("Erro ao carregar histórico: " + (e.message || e));
     return [];
   }
 }
@@ -1468,22 +1510,33 @@ async function saveToHistory() {
   };
 
   try {
-    if (editingHistoryId) {
-      const { error } = await supabase
-        .from("auditorias")
-        .update(payload)
-        .eq("id", editingHistoryId);
-      if (error) throw error;
-      alert("Relatório atualizado!");
+    if (supabase) {
+      if (editingHistoryId) {
+        const { error } = await supabase.from("auditorias").update(payload).eq("id", editingHistoryId);
+        if (error) throw error;
+        alert("Relatório atualizado!");
+      } else {
+        const { data, error } = await supabase.from("auditorias").insert(payload).select("id").single();
+        if (error) throw error;
+        editingHistoryId = data.id;
+        alert("Relatório salvo no histórico!");
+      }
     } else {
-      const { data, error } = await supabase
-        .from("auditorias")
-        .insert(payload)
-        .select("id")
-        .single();
-      if (error) throw error;
-      editingHistoryId = data.id;
-      alert("Relatório salvo no histórico!");
+      if (editingHistoryId) {
+        await restQuery("/rest/v1/auditorias?id=eq." + encodeURIComponent(editingHistoryId), {
+          method: "PATCH",
+          body: payload
+        });
+        alert("Relatório atualizado!");
+      } else {
+        var rows = await restQuery("/rest/v1/auditorias", {
+          method: "POST",
+          body: payload,
+          prefer: "return=representation"
+        });
+        if (rows && rows[0] && rows[0].id) editingHistoryId = rows[0].id;
+        alert("Relatório salvo no histórico!");
+      }
     }
   } catch (e) {
     console.error(e);
@@ -1594,14 +1647,21 @@ async function renderHistory() {
 
 async function loadFromHistory(id) {
   try {
-    const { data, error } = await supabase
-      .from("auditorias")
-      .select("*")
-      .eq("id", id)
-      .single();
-    if (error || !data) {
-      alert("Relatório não encontrado.");
-      return;
+    var data = null;
+    if (supabase) {
+      const res = await supabase.from("auditorias").select("*").eq("id", id).single();
+      if (res.error || !res.data) {
+        alert("Relatório não encontrado.");
+        return;
+      }
+      data = res.data;
+    } else {
+      var rows = await restQuery("/rest/v1/auditorias?id=eq." + encodeURIComponent(id) + "&select=*");
+      if (!rows || !rows.length) {
+        alert("Relatório não encontrado.");
+        return;
+      }
+      data = rows[0];
     }
     const h = mapAuditRow(data);
     if (!canAccessArea(h.area)) {
@@ -1652,8 +1712,12 @@ async function deleteHistory(id) {
   if (!isMaster()) { alert("Somente o perfil Qualidade pode excluir relatórios."); return; }
   if (!confirm("Excluir este relatório do histórico?")) return;
   try {
-    const { error } = await supabase.from("auditorias").delete().eq("id", id);
-    if (error) throw error;
+    if (supabase) {
+      const { error } = await supabase.from("auditorias").delete().eq("id", id);
+      if (error) throw error;
+    } else {
+      await restQuery("/rest/v1/auditorias?id=eq." + encodeURIComponent(id), { method: "DELETE" });
+    }
     await renderHistory();
   } catch (e) {
     console.error(e);
