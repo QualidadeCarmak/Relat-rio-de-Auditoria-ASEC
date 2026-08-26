@@ -1077,6 +1077,35 @@ function renderCrono() {
 
 // Auth (doLogin, supabase, currentUser) está no bloco <script> anterior
 
+function enterApp() {
+  document.getElementById("login-screen").classList.add("hidden");
+  document.getElementById("app-root").classList.remove("hidden");
+  document.getElementById("userChip").textContent = (currentUser && (currentUser.label || currentUser.email)) || "—";
+
+  var isViewer = currentUser && currentUser.role === "viewer";
+  document.body.classList.toggle("viewer-mode", isViewer);
+
+  var filterBar = document.getElementById("histFilterBar");
+  if (filterBar) filterBar.style.display = isViewer ? "none" : "flex";
+  if (typeof populateHistFilter === "function") populateHistFilter();
+
+  if (isViewer) {
+    showView("history");
+  } else {
+    showView("select");
+  }
+}
+
+function populateHistFilter() {
+  var sel = document.getElementById("histAreaFilter");
+  if (!sel) return;
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">Todas as áreas</option>' +
+    Object.keys(A).map(function(k){ return '<option value="'+k+'">'+A[k].n+'</option>'; }).join("");
+  if (cur) sel.value = cur;
+}
+
+
 document.getElementById("auditDate").valueAsDate = new Date();
 
 function initAreaCards() {
