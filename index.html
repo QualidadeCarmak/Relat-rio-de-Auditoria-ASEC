@@ -6,7 +6,7 @@
 <title>Checklist Auditoria Interna ASEC - Carmak</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+<script src="./supabase.min.js"></script>
 <style>
 :root{
   --p:#06402b;
@@ -454,41 +454,83 @@ body.viewer-mode .crono-edit-only{display:none !important}
 </div><!-- /app-root -->
 
 <script>
-// ===== Supabase Auth (bloco isolado — deve carregar mesmo se o resto falhar) =====
-const SUPABASE_URL = "https://mhvmhynjmeachwfmtae.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1odm1oeW5qam1lYWNod2ZtdGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MjIyNzcsImV4cCI6MjEwMzI5ODI3N30.mVRUT3hDpVDp49NLF9zSH964m6hBQx6xv33UkbrytRM";
+// ===== Supabase Auth (bloco isolado) =====
+var SUPABASE_URL = "https://mhvmhynjmeachwfmtae.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1odm1oeW5qam1lYWNod2ZtdGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MjIyNzcsImV4cCI6MjEwMzI5ODI3N30.mVRUT3hDpVDp49NLF9zSH964m6hBQx6xv33UkbrytRM";
 
 var supabase = null;
 var currentUser = null;
 var readOnly = false;
+var sbSession = null; // { access_token, refresh_token, user }
 
 function initSupabaseClient() {
   try {
-    var lib = window.supabase || window.supabaseJs || null;
-    var createClient = null;
-    if (lib && typeof lib.createClient === "function") createClient = lib.createClient;
-    else if (typeof window.createClient === "function") createClient = window.createClient;
-    if (!createClient) {
-      console.error("createClient não encontrado. window.supabase =", window.supabase);
-      return null;
+    var lib = window.supabase;
+    if (lib && typeof lib.createClient === "function") {
+      return lib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
-    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   } catch (e) {
-    console.error("Falha createClient", e);
-    return null;
+    console.warn("createClient falhou", e);
   }
+  return null;
 }
 
 supabase = initSupabaseClient();
 
-async function loadProfile(userId) {
-  var res = await supabase.from("profiles").select("id, email, full_name, role, area").eq("id", userId).single();
-  if (res.error || !res.data) {
-    console.error("Perfil não encontrado:", res.error);
+/** Login via REST (não depende da lib JS) */
+async function restSignIn(email, password) {
+  var res = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ email: email, password: password })
+  });
+  var body = await res.json().catch(function(){ return {}; });
+  if (!res.ok) {
+    var msg = (body && (body.error_description || body.msg || body.error)) || ("HTTP " + res.status);
+    var err = new Error(msg);
+    err.status = res.status;
+    err.body = body;
+    throw err;
+  }
+  return body; // access_token, refresh_token, user, ...
+}
+
+async function restGetProfile(userId, accessToken) {
+  var url = SUPABASE_URL + "/rest/v1/profiles?id=eq." + encodeURIComponent(userId) + "&select=id,email,full_name,role,area";
+  var res = await fetch(url, {
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": "Bearer " + accessToken,
+      "Accept": "application/json"
+    }
+  });
+  if (!res.ok) {
+    console.error("profiles HTTP", res.status, await res.text());
     return null;
   }
-  var d = res.data;
+  var rows = await res.json();
+  if (!rows || !rows.length) return null;
+  var d = rows[0];
   return { id: d.id, email: d.email, role: d.role, area: d.area, label: d.full_name || d.email };
+}
+
+async function loadProfile(userId) {
+  if (supabase) {
+    var res = await supabase.from("profiles").select("id, email, full_name, role, area").eq("id", userId).single();
+    if (res.error || !res.data) {
+      console.error("Perfil não encontrado:", res.error);
+      return null;
+    }
+    var d = res.data;
+    return { id: d.id, email: d.email, role: d.role, area: d.area, label: d.full_name || d.email };
+  }
+  if (sbSession && sbSession.access_token) {
+    return restGetProfile(userId, sbSession.access_token);
+  }
+  return null;
 }
 
 async function doLogin() {
@@ -505,18 +547,6 @@ async function doLogin() {
     err.classList.add("show");
   }
 
-  if (!supabase) {
-    supabase = initSupabaseClient();
-  }
-  if (!supabase) {
-    showErr("Supabase não carregou. Atualize a página (Ctrl+F5) e veja o Console (F12).");
-    console.error("Diagnóstico:", {
-      hasWindowSupabase: !!window.supabase,
-      keys: window.supabase ? Object.keys(window.supabase) : [],
-      typeofCreate: window.supabase ? typeof window.supabase.createClient : "n/a"
-    });
-    return;
-  }
   if (!email || !password) {
     showErr("Informe e-mail e senha");
     return;
@@ -526,16 +556,42 @@ async function doLogin() {
   if (btn) { btn.disabled = true; btn.textContent = "Entrando..."; }
 
   try {
-    var result = await supabase.auth.signInWithPassword({ email: email, password: password });
-    if (result.error) {
-      console.error(result.error);
-      showErr("Usuário ou senha inválidos");
-      return;
+    // 1) tenta lib; 2) fallback REST
+    if (!supabase) supabase = initSupabaseClient();
+
+    var userId = null;
+
+    if (supabase) {
+      var result = await supabase.auth.signInWithPassword({ email: email, password: password });
+      if (result.error) {
+        console.error(result.error);
+        showErr("Usuário ou senha inválidos");
+        return;
+      }
+      userId = result.data.user.id;
+      sbSession = result.data.session;
+    } else {
+      console.warn("Usando login REST (lib Supabase ausente)");
+      var session = await restSignIn(email, password);
+      sbSession = session;
+      userId = session.user && session.user.id;
+      if (!userId) {
+        showErr("Login sem user id");
+        return;
+      }
+      // guarda token para o restante do app (REST)
+      try {
+        localStorage.setItem("sb_access_token", session.access_token || "");
+        localStorage.setItem("sb_refresh_token", session.refresh_token || "");
+      } catch (e) {}
     }
-    var profile = await loadProfile(result.data.user.id);
+
+    var profile = await loadProfile(userId);
     if (!profile) {
       showErr("Login ok, mas perfil não encontrado na tabela profiles");
-      await supabase.auth.signOut();
+      try {
+        if (supabase) await supabase.auth.signOut();
+      } catch (e) {}
       return;
     }
     currentUser = profile;
@@ -543,11 +599,16 @@ async function doLogin() {
       enterApp();
     } else {
       showErr("App principal não carregou (erro no script). Veja o Console (F12).");
-      console.error("enterApp não definido — o script principal falhou ao carregar");
+      console.error("enterApp não definido");
     }
   } catch (e) {
     console.error(e);
-    showErr("Erro de conexão. Tente de novo.");
+    var m = (e && e.message) ? e.message : String(e);
+    if (/invalid|credentials|email|password|401/i.test(m)) {
+      showErr("Usuário ou senha inválidos");
+    } else {
+      showErr("Erro: " + m);
+    }
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = "Entrar"; }
   }
@@ -555,6 +616,11 @@ async function doLogin() {
 
 async function doLogout() {
   try { if (supabase) await supabase.auth.signOut(); } catch (e) {}
+  try {
+    localStorage.removeItem("sb_access_token");
+    localStorage.removeItem("sb_refresh_token");
+  } catch (e) {}
+  sbSession = null;
   currentUser = null;
   readOnly = false;
   document.body.classList.remove("readonly-mode", "viewer-mode");
