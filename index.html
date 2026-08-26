@@ -455,6 +455,112 @@ body.viewer-mode .crono-edit-only{display:none !important}
 </div><!-- /app-root -->
 
 <script>
+// ===== Supabase Auth (bloco isolado — deve carregar mesmo se o resto falhar) =====
+const SUPABASE_URL = "https://mhvmhynjmeachwfmtae.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1odm1oeW5qam1lYWNod2ZtdGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MjIyNzcsImV4cCI6MjEwMzI5ODI3N30.mVRUT3hDpVDp49NLF9zSH964m6hBQx6xv33UkbrytRM";
+
+var supabase = null;
+var currentUser = null;
+var readOnly = false;
+
+try {
+  if (window.supabase && window.supabase.createClient) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } else {
+    console.error("CDN Supabase ausente");
+  }
+} catch (e) {
+  console.error("Falha createClient", e);
+}
+
+async function loadProfile(userId) {
+  var res = await supabase.from("profiles").select("id, email, full_name, role, area").eq("id", userId).single();
+  if (res.error || !res.data) {
+    console.error("Perfil não encontrado:", res.error);
+    return null;
+  }
+  var d = res.data;
+  return { id: d.id, email: d.email, role: d.role, area: d.area, label: d.full_name || d.email };
+}
+
+async function doLogin() {
+  var emailEl = document.getElementById("loginUser");
+  var passEl = document.getElementById("loginPass");
+  var err = document.getElementById("loginError");
+  var email = (emailEl && emailEl.value || "").trim();
+  var password = passEl && passEl.value || "";
+  if (err) err.classList.remove("show");
+
+  function showErr(msg) {
+    if (!err) { alert(msg); return; }
+    err.textContent = msg;
+    err.classList.add("show");
+  }
+
+  if (!supabase) {
+    showErr("Supabase não carregou. Atualize a página (Ctrl+F5).");
+    return;
+  }
+  if (!email || !password) {
+    showErr("Informe e-mail e senha");
+    return;
+  }
+
+  var btn = document.getElementById("btnLogin");
+  if (btn) { btn.disabled = true; btn.textContent = "Entrando..."; }
+
+  try {
+    var result = await supabase.auth.signInWithPassword({ email: email, password: password });
+    if (result.error) {
+      console.error(result.error);
+      showErr("Usuário ou senha inválidos");
+      return;
+    }
+    var profile = await loadProfile(result.data.user.id);
+    if (!profile) {
+      showErr("Login ok, mas perfil não encontrado na tabela profiles");
+      await supabase.auth.signOut();
+      return;
+    }
+    currentUser = profile;
+    if (typeof enterApp === "function") {
+      enterApp();
+    } else {
+      showErr("App principal não carregou (erro no script). Veja o Console (F12).");
+      console.error("enterApp não definido — o script principal falhou ao carregar");
+    }
+  } catch (e) {
+    console.error(e);
+    showErr("Erro de conexão. Tente de novo.");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "Entrar"; }
+  }
+}
+
+async function doLogout() {
+  try { if (supabase) await supabase.auth.signOut(); } catch (e) {}
+  currentUser = null;
+  readOnly = false;
+  document.body.classList.remove("readonly-mode", "viewer-mode");
+  var app = document.getElementById("app-root");
+  var login = document.getElementById("login-screen");
+  if (app) app.classList.add("hidden");
+  if (login) login.classList.remove("hidden");
+  var pass = document.getElementById("loginPass");
+  if (pass) pass.value = "";
+  if (typeof showView === "function") showView("select");
+}
+
+function isMaster() {
+  return currentUser && currentUser.role === "master";
+}
+function canAccessArea(areaKey) {
+  if (!currentUser) return false;
+  if (currentUser.role === "master") return true;
+  return currentUser.area === areaKey;
+}
+</script>
+<script>
 const ICONS = {RH:"👥",Seg:"🛡️",Pos:"🔧",Ofi:"🏭",Alm:"📦"};
 const A = {
 RH:{n:"Recursos Humanos",q:[
@@ -887,137 +993,7 @@ function renderCrono() {
 }
 
 
-// ===== Supabase =====
-const SUPABASE_URL = "https://mhvmhynjmeachwfmtae.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1odm1oeW5qam1lYWNod2ZtdGFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MjIyNzcsImV4cCI6MjEwMzI5ODI3N30.mVRUT3hDpVDp49NLF9zSH964m6hBQx6xv33UkbrytRM";
-
-let supabase = null;
-try {
-  if (!window.supabase || !window.supabase.createClient) {
-    console.error("Biblioteca Supabase não carregou. Verifique a conexão e o script CDN.");
-  } else {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
-} catch (e) {
-  console.error("Falha ao iniciar Supabase:", e);
-}
-
-let currentUser = null; // { id, email, role, area, label }
-let readOnly = false;
-
-async function loadProfile(userId) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, role, area")
-    .eq("id", userId)
-    .single();
-  if (error || !data) {
-    console.error("Perfil não encontrado:", error);
-    return null;
-  }
-  return {
-    id: data.id,
-    email: data.email,
-    role: data.role,
-    area: data.area,
-    label: data.full_name || data.email
-  };
-}
-
-async function doLogin() {
-  const email = document.getElementById("loginUser").value.trim();
-  const password = document.getElementById("loginPass").value;
-  const err = document.getElementById("loginError");
-  err.classList.remove("show");
-
-  if (!supabase) {
-    err.textContent = "Supabase não carregou. Atualize a página (Ctrl+F5) ou verifique a internet.";
-    err.classList.add("show");
-    return;
-  }
-
-  if (!email || !password) {
-    err.textContent = "Informe e-mail e senha";
-    err.classList.add("show");
-    return;
-  }
-
-  const btn = document.getElementById("btnLogin");
-  if (btn) { btn.disabled = true; btn.textContent = "Entrando..."; }
-
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      err.textContent = "Usuário ou senha inválidos";
-      err.classList.add("show");
-      return;
-    }
-    const profile = await loadProfile(data.user.id);
-    if (!profile) {
-      err.textContent = "Login ok, mas perfil não encontrado na tabela profiles";
-      err.classList.add("show");
-      await supabase.auth.signOut();
-      return;
-    }
-    currentUser = profile;
-    enterApp();
-  } catch (e) {
-    console.error(e);
-    err.textContent = "Erro de conexão. Tente de novo.";
-    err.classList.add("show");
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = "Entrar"; }
-  }
-}
-
-async function doLogout() {
-  try { await supabase.auth.signOut(); } catch (e) {}
-  currentUser = null;
-  readOnly = false;
-  document.body.classList.remove("readonly-mode", "viewer-mode");
-  document.getElementById("app-root").classList.add("hidden");
-  document.getElementById("login-screen").classList.remove("hidden");
-  document.getElementById("loginPass").value = "";
-  showView("select");
-}
-
-function enterApp() {
-  document.getElementById("login-screen").classList.add("hidden");
-  document.getElementById("app-root").classList.remove("hidden");
-  document.getElementById("userChip").textContent = currentUser.label || currentUser.email || "—";
-
-  const isViewer = currentUser.role === "viewer";
-  document.body.classList.toggle("viewer-mode", isViewer);
-
-  const filterBar = document.getElementById("histFilterBar");
-  if (filterBar) filterBar.style.display = isViewer ? "none" : "flex";
-  populateHistFilter();
-
-  if (isViewer) {
-    showView("history");
-  } else {
-    showView("select");
-  }
-}
-
-function populateHistFilter() {
-  const sel = document.getElementById("histAreaFilter");
-  if (!sel) return;
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">Todas as áreas</option>' +
-    Object.keys(A).map(k => `<option value="${k}">${A[k].n}</option>`).join("");
-  if (cur) sel.value = cur;
-}
-
-function isMaster() {
-  return currentUser && currentUser.role === "master";
-}
-function canAccessArea(areaKey) {
-  if (!currentUser) return false;
-  if (currentUser.role === "master") return true;
-  return currentUser.area === areaKey;
-}
-
+// Auth (doLogin, supabase, currentUser) está no bloco <script> anterior
 
 document.getElementById("auditDate").valueAsDate = new Date();
 
