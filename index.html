@@ -1702,7 +1702,10 @@ function unidadeFromDealer(dealer) {
   return d.trim() || "Matriz";
 }
 function setorFromArea(areaKey) {
-  const map = { GP: "GP", RH: "GP", Seg: "Segurança", Pos: "Pós Vendas", Ofi: "Oficina", Alm: "Almoxarifado" };
+  const map = {
+    GP: "Gente & Performance", RH: "Gente & Performance",
+    Seg: "Segurança", Pos: "Pós Vendas", Ofi: "Oficina", Alm: "Almoxarifado"
+  };
   return map[areaKey] || (A[areaKey] && A[areaKey].n) || areaKey;
 }
 function mesPtFromDate(iso) {
